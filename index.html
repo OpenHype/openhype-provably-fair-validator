@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roll Verifier</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            padding: 1rem;
+            background-color: #f3f4f6;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 60rem;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        #input {
+            width: 100%;
+            height: 8rem;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        #output {
+            margin-top: 1rem;
+        }
+        .info-top {
+            background-color: #e2e3e5;
+            color: black;
+            padding: 0.5rem;
+            border-radius: 0.25rem 0.25rem 0 0;
+            margin-top: 2rem;
+        }
+        .success-bottom {
+            color: #155724;
+            background-color: #d4edda;
+            padding: 0.5rem;
+            border-radius: 0 0 0.25rem 0.25rem;
+            margin-top: 0;
+        }
+        .error-bottom {
+            color: #721c24;
+            background-color: #f8d7da;
+            padding: 0.5rem;
+            border-radius: 0 0 0.25rem 0.25rem;
+            margin-top: 0;
+        }
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .warning {
+            color: #856404;
+            background-color: #fff3cd;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        pre {
+            background-color: #f9fafb;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+        p {
+          margin-block-end: 0px;
+        }
+    </style>
+    <script>
+        const ROLL_CHARS = 15;
+        const ROLL_MAX = 100000;
+
+        const generateRoll = (
+          serverSeed,
+          clientSeed,
+          nonce
+        ) => {
+          const hash = CryptoJS.HmacSHA512(
+            serverSeed,
+            `${clientSeed}-${nonce}`
+          ).toString(CryptoJS.enc.Hex);
+
+          const subHash = hash.substring(0, ROLL_CHARS);
+          const decimal = BigInt(`0x${subHash}`);
+          const roll = decimal % BigInt(ROLL_MAX);
+
+          // because we have [0; 99999] but need [1; 100000]
+          return Number(roll) + 1;
+        };
+
+        const calculatePublicHash = (secret, salt) => {
+          const hash = CryptoJS.HmacSHA256(secret, salt).toString(CryptoJS.enc.Hex);
+          return hash;
+        };
+
+        const checkRequiredProps = (obj, props) => {
+          for (const prop of props) {
+            if (!obj.hasOwnProperty(prop) || obj[prop] === "") {
+              return false;
+            }
+          }
+          return true;
+        };
+
+        const checkRegularRoll = (data) => {
+          let message = "";
+
+          const req = [
+            "server_seed",
+            "secret_salt",
+            "public_hash",
+            "client_seed",
+            "nonce",
+            "roll",
+          ];
+          if (typeof data !== "object" || !checkRequiredProps(data, req)) {
+            return '<p class="error">Your input is invalid.<br> Try copy JSON string from the site and paste here.</p>';
+          }
+          if (data.server_seed[0] === "*" || data.secret_salt[0] === "*") {
+            return '<p class="warning">Server Seed seems to be not yet revealed.<br> It is impossible to verify roll right now.</p>';
+          }
+
+          const originalRoll = parseInt(data.roll);
+          const calculatedRoll = generateRoll(
+            data.server_seed,
+            data.client_seed,
+            parseInt(data.nonce)
+          );
+
+          message += `<p class='info-top'>Original Roll is: <b>${originalRoll}</b> <br> Calculated Roll is: <b>${calculatedRoll}</b></p>`;
+
+          if (originalRoll === calculatedRoll) {
+            message +=
+              "<p class='success-bottom'>They are identical!</p>";
+          } else {
+            message +=
+              "<p class='error-bottom'>They are not identical!</p>";
+          }
+
+          const originalPublicHash = data.public_hash;
+          const calculatedPublicHash = calculatePublicHash(
+            data.server_seed,
+            data.secret_salt
+          );
+
+          message += `<p class='info-top'>Original Public Hash is:<br><b>${originalPublicHash}</b> <br> Valid Public Hash (for this Server Seed and Salt) is:<br><b>${calculatedPublicHash}</b></p>`;
+
+          if (originalPublicHash === calculatedPublicHash) {
+            message +=
+              "<p class='success-bottom'>They are identical!</p>";
+          } else {
+            message +=
+              "<p class='error-bottom'>They are not identical!</p>";
+          }
+
+          return message;
+        };
+
+        const verifyRoll = (rollData) => {
+          try {
+            const data = JSON.parse(rollData);
+            const message = checkRegularRoll(data);
+            return message;
+          } catch (_error) {
+            return "<p class='error'>Invalid JSON format. Please check your input.</p>";
+          }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+      <div id="output"></div>
+        <h1>Enter Your Roll Data:</h1>
+        <textarea id="input" placeholder="Paste JSON here..."></textarea>
+        <button onclick="verifyInput()">Check!</button>
+    </div>
+    <script>
+        function verifyInput() {
+            const input = document.getElementById('input').value;
+            const result = verifyRoll(input);
+            document.getElementById('output').innerHTML = result;
+        }
+    </script>
+</body>
+</html>
