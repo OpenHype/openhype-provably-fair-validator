@@ -43,27 +43,6 @@
         #output {
             margin-top: 1rem;
         }
-        .info-top {
-            background-color: #e2e3e5;
-            color: black;
-            padding: 0.5rem;
-            border-radius: 0.25rem 0.25rem 0 0;
-            margin-top: 2rem;
-        }
-        .success-bottom {
-            color: #155724;
-            background-color: #d4edda;
-            padding: 0.5rem;
-            border-radius: 0 0 0.25rem 0.25rem;
-            margin-top: 0;
-        }
-        .error-bottom {
-            color: #721c24;
-            background-color: #f8d7da;
-            padding: 0.5rem;
-            border-radius: 0 0 0.25rem 0.25rem;
-            margin-top: 0;
-        }
         .error {
             color: #721c24;
             background-color: #f8d7da;
@@ -76,6 +55,22 @@
             padding: 0.5rem;
             border-radius: 0.25rem;
         }
+        .check { color: #0ce83f; font-weight: bold; }
+        .cross { color: #721c24; font-weight: bold; }
+        .warn { color: #856404; font-weight: bold; }
+        .dim { color: #6b7280; font-style: italic; }
+        .result-box {
+            background-color: #fff;
+            padding: 1.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            line-height: 1.6;
+        }
+        .result-success { border-left: 4px solid #155724; }
+        .result-error { border-left: 4px solid #721c24; }
+        .result-partial { border-left: 4px solid #856404; }
+        hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1rem 0; }
         pre {
             background-color: #f9fafb;
             padding: 0.5rem;
@@ -90,12 +85,12 @@
     </style>
     <script>
         const ROLL_CHARS = 15;
-        const ROLL_MAX = 100000;
 
         const generateRoll = (
           serverSeed,
           clientSeed,
-          nonce
+          nonce,
+          roll_max,
         ) => {
           const hash = CryptoJS.HmacSHA512(
             serverSeed,
@@ -104,10 +99,9 @@
 
           const subHash = hash.substring(0, ROLL_CHARS);
           const decimal = BigInt(`0x${subHash}`);
-          const roll = decimal % BigInt(ROLL_MAX);
+          const roll = decimal % BigInt(roll_max);
 
-          // because we have [0; 99999] but need [1; 100000]
-          return Number(roll) + 1;
+          return Number(roll);
         };
 
         const calculatePublicHash = (secret, salt) => {
@@ -125,7 +119,7 @@
         };
 
         const checkRegularRoll = (data) => {
-          let message = "";
+          let html = "";
 
           const req = [
             "server_seed",
@@ -142,40 +136,93 @@
             return '<p class="warning">Server Seed seems to be not yet revealed.<br> It is impossible to verify roll right now.</p>';
           }
 
-          const originalRoll = parseInt(data.roll);
-          const calculatedRoll = generateRoll(
+          const calculated = generateRoll(
             data.server_seed,
             data.client_seed,
-            parseInt(data.nonce)
+            parseInt(data.nonce),
+            parseInt(data.drawable_total)
           );
 
-          message += `<p class='info-top'>Original Roll is: <b>${originalRoll}</b> <br> Calculated Roll is: <b>${calculatedRoll}</b></p>`;
+          const expected = parseInt(data.roll);
+          const merkleIndex = parseInt(data.merkle_index); // if provided
 
-          if (originalRoll === calculatedRoll) {
-            message +=
-              "<p class='success-bottom'>They are identical!</p>";
-          } else {
-            message +=
-              "<p class='error-bottom'>They are not identical!</p>";
+          const hasExpected = !isNaN(expected);
+          const hasMerkleIndex = !isNaN(merkleIndex);
+          const isRollMatch = hasExpected && calculated === expected;
+
+          let overallSuccess = true;
+
+          // Step 1: Verify HMAC roll matches original_roll
+          html += `<p><b>Step 1: HMAC Roll Verification</b><br>`;
+          html += `&nbsp;&nbsp;Calculated Roll: <b>${calculated}</b><br>`;
+          if (hasExpected) {
+            html += `&nbsp;&nbsp;Original Roll: <b>${expected}</b><br>`;
+            html += isRollMatch
+              ? `&nbsp;&nbsp;<span class="check">&#10003;</span> HMAC roll matches original_roll<br>`
+              : `&nbsp;&nbsp;<span class="cross">&#10007;</span> HMAC roll does NOT match original_roll<br>`;
+            if (!isRollMatch) overallSuccess = false;
+          }
+          html += `</p>`;
+
+          // Step 2: Explain linear probing (if merkle_index differs from roll)
+          if (hasExpected && hasMerkleIndex) {
+            html += `<p><b>Step 2: Linear Probing</b><br>`;
+            html += `&nbsp;&nbsp;Original Roll: <b>${expected}</b><br>`;
+            html += `&nbsp;&nbsp;Merkle Index: <b>${merkleIndex}</b><br>`;
+            if (expected === merkleIndex) {
+              html += `&nbsp;&nbsp;<span class="check">&#10003;</span> No linear probing needed — position was available<br>`;
+            } else {
+              html += `&nbsp;&nbsp;<span class="warn">&#9888;</span> Linear probing applied: position ${expected} was already drawn, `;
+              html += `probed forward to ${merkleIndex}<br>`;
+              html += `&nbsp;&nbsp;<span class="dim">This is normal — the server cannot control which positions are occupied.</span><br>`;
+            }
+            html += `</p>`;
           }
 
-          const originalPublicHash = data.public_hash;
+          // Step 3: Public Hash Verification
           const calculatedPublicHash = calculatePublicHash(
             data.server_seed,
             data.secret_salt
           );
-
-          message += `<p class='info-top'>Original Public Hash is:<br><b>${originalPublicHash}</b> <br> Valid Public Hash (for this Server Seed and Salt) is:<br><b>${calculatedPublicHash}</b></p>`;
-
-          if (originalPublicHash === calculatedPublicHash) {
-            message +=
-              "<p class='success-bottom'>They are identical!</p>";
+          
+          let stepNumber = (hasExpected && hasMerkleIndex) ? 3 : 2;
+          
+          html += `<p><b>Step ${stepNumber}: Public Hash Verification</b><br>`;
+          html += `&nbsp;&nbsp;Original Public Hash:<br>&nbsp;&nbsp;<b>${data.public_hash}</b><br>`;
+          html += `&nbsp;&nbsp;Calculated Public Hash:<br>&nbsp;&nbsp;<b>${calculatedPublicHash}</b><br>`;
+          
+          if (data.public_hash === calculatedPublicHash) {
+            html += `&nbsp;&nbsp;<span class="check">&#10003;</span> Public Hash matches!<br>`;
           } else {
-            message +=
-              "<p class='error-bottom'>They are not identical!</p>";
+            html += `&nbsp;&nbsp;<span class="cross">&#10007;</span> Public Hash mismatch.<br>`;
+            overallSuccess = false;
           }
+          html += `</p>`;
 
-          return message;
+          html += `<hr>`;
+
+          // Summary
+          html += `<p>`;
+          if (!hasExpected) {
+            html += `<span class="dim">No original_roll provided — showing calculated result only.</span>`;
+            overallSuccess = false;
+          } else if (isRollMatch) {
+            html += `<span class="check">&#10003;</span> <b>Roll is valid!</b> The draw was deterministic.`;
+            if (hasMerkleIndex && expected !== merkleIndex) {
+              html += `<br><span class="dim">The merkle_index (${merkleIndex}) differs from the roll (${expected}) due to linear probing — this is expected behavior.</span>`;
+            }
+          } else {
+            html += `<span class="cross">&#10007;</span> <b>Roll mismatch.</b> Expected ${expected}, got ${calculated}.`;
+          }
+          html += `</p>`;
+
+          // Full hash for transparency
+          const fullHash = CryptoJS.HmacSHA512(data.server_seed, `${data.client_seed}-${data.nonce}`).toString(CryptoJS.enc.Hex);
+          html += `<p><span class="dim">Full HMAC-SHA512: ${fullHash.substring(0, 30)}...</span></p>`;
+
+          const boxClass = overallSuccess && hasExpected ? 'result-success' : (!hasExpected ? 'result-partial' : 'result-error');
+
+          return `<div class="result-box ${boxClass}">${html}</div>`;
         };
 
         const verifyRoll = (rollData) => {
