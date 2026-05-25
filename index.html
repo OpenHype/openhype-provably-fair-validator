@@ -1,254 +1,451 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Roll Verifier</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        body {
-            padding: 1rem;
-            background-color: #f3f4f6;
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            max-width: 60rem;
-            margin: 0 auto;
-        }
-        h1 {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-        }
-        #input {
-            width: 100%;
-            height: 8rem;
-            padding: 0.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.25rem;
-            margin-bottom: 1rem;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #3b82f6;
-            color: white;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0.25rem;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #2563eb;
-        }
-        #output {
-            margin-top: 1rem;
-        }
-        .error {
-            color: #721c24;
-            background-color: #f8d7da;
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-        }
-        .warning {
-            color: #856404;
-            background-color: #fff3cd;
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-        }
-        .check { color: #0ce83f; font-weight: bold; }
-        .cross { color: #721c24; font-weight: bold; }
-        .warn { color: #856404; font-weight: bold; }
-        .dim { color: #6b7280; font-style: italic; }
-        .result-box {
-            background-color: #fff;
-            padding: 1.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-            line-height: 1.6;
-        }
-        .result-success { border-left: 4px solid #155724; }
-        .result-error { border-left: 4px solid #721c24; }
-        .result-partial { border-left: 4px solid #856404; }
-        hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1rem 0; }
-        pre {
-            background-color: #f9fafb;
-            padding: 0.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.25rem;
-            overflow-x: auto;
-            margin-bottom: 1rem;
-        }
-        p {
-          margin-block-end: 0px;
-        }
+      body {
+        padding: 1rem;
+        background-color: #f3f4f6;
+        font-family: Arial, sans-serif;
+      }
+      .container {
+        max-width: 60rem;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+      }
+      #input {
+        width: 100%;
+        height: 8rem;
+        padding: 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.25rem;
+        margin-bottom: 1rem;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #3b82f6;
+        color: white;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 0.25rem;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #2563eb;
+      }
+      #output {
+        margin-top: 1rem;
+      }
+      .error {
+        color: #721c24;
+        background-color: #f8d7da;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+      }
+      .warning {
+        color: #856404;
+        background-color: #fff3cd;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+      }
+      .check {
+        color: #0ce83f;
+        font-weight: bold;
+      }
+      .cross {
+        color: #721c24;
+        font-weight: bold;
+      }
+      .warn {
+        color: #856404;
+        font-weight: bold;
+      }
+      .dim {
+        color: #6b7280;
+        font-style: italic;
+      }
+      .result-box {
+        background-color: #fff;
+        padding: 1.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+        line-height: 1.6;
+      }
+      .result-success {
+        border-left: 4px solid #155724;
+      }
+      .result-error {
+        border-left: 4px solid #721c24;
+      }
+      .result-partial {
+        border-left: 4px solid #856404;
+      }
+      hr {
+        border: 0;
+        border-top: 1px solid #e5e7eb;
+        margin: 1rem 0;
+      }
+      pre {
+        background-color: #f9fafb;
+        padding: 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.25rem;
+        overflow-x: auto;
+        margin-bottom: 1rem;
+      }
+      p {
+        margin-block-end: 0px;
+      }
     </style>
     <script>
-        const ROLL_CHARS = 15;
+      // ── Utility: hex encode ArrayBuffer ──
+      function bufToHex(buf) {
+        return Array.from(new Uint8Array(buf))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      }
 
-        const generateRoll = (
-          serverSeed,
+      // ══════════════════════════════════════════════
+      // HMAC primitives (native Web Crypto API)
+      // ══════════════════════════════════════════════
+      async function hmacSha512(key, message) {
+        const enc = new TextEncoder();
+        const cryptoKey = await crypto.subtle.importKey(
+          "raw",
+          enc.encode(key),
+          { name: "HMAC", hash: "SHA-512" },
+          false,
+          ["sign"]
+        );
+        const sig = await crypto.subtle.sign(
+          "HMAC",
+          cryptoKey,
+          enc.encode(message)
+        );
+        return bufToHex(sig);
+      }
+
+      async function hmacSha256(key, message) {
+        const enc = new TextEncoder();
+        const cryptoKey = await crypto.subtle.importKey(
+          "raw",
+          enc.encode(key),
+          { name: "HMAC", hash: "SHA-256" },
+          false,
+          ["sign"]
+        );
+        const sig = await crypto.subtle.sign(
+          "HMAC",
+          cryptoKey,
+          enc.encode(message)
+        );
+        return bufToHex(sig);
+      }
+
+      // ══════════════════════════════════════════════
+      // Roll math
+      // ══════════════════════════════════════════════
+      const ROLL_CHARS = 15;
+
+      // Returns the raw 60-bit BigInt extracted from HMAC-SHA512 (before any modulus).
+      async function rollRaw(serverSeed, clientSeed, nonce) {
+        const key = `${clientSeed}-${nonce}`;
+        const hash = await hmacSha512(key, serverSeed);
+        const subHash = hash.substring(0, ROLL_CHARS);
+        return { raw: BigInt(`0x${subHash}`), fullHash: hash };
+      }
+
+      // sk_game tier roll: % 100000 + 1, range [1, 100000]
+      async function calculateSkRoll(serverSeed, clientSeed, nonce) {
+        const { raw } = await rollRaw(serverSeed, clientSeed, nonce);
+        return Number(raw % 100000n) + 1;
+      }
+
+      // op_game card roll: % remainingLength, range [0, remainingLength)
+      async function calculateOpRoll(
+        serverSeed,
+        clientSeed,
+        nonce,
+        remainingLength
+      ) {
+        const { raw } = await rollRaw(serverSeed, clientSeed, nonce);
+        return Number(raw % BigInt(remainingLength));
+      }
+
+      // ══════════════════════════════════════════════
+      // JSON shape detection
+      // ══════════════════════════════════════════════
+      function detectShape(data) {
+        // sk_game audit bundle from GET /user/v1/server_seed/:id/audit_data
+        if (
+          data &&
+          data.server_seed &&
+          typeof data.server_seed === "object" &&
+          Array.isArray(data.rolls)
+        ) {
+          return "sk_bundle";
+        }
+        const hasMerkle =
+          data.merkle_index !== undefined &&
+          (data.merkle_proof !== undefined || data.merkle_root !== undefined);
+        const hasOpFields =
+          hasMerkle ||
+          data.pack_uuid !== undefined ||
+          data.product_uuid !== undefined ||
+          data.product_title !== undefined;
+        if (hasOpFields) return "op";
+        if (
+          data.server_seed &&
+          (data.client_seed || data.combined_client_seed) &&
+          data.nonce !== undefined
+        )
+          return "sk";
+        return "unknown";
+      }
+
+      // ══════════════════════════════════════════════
+      // Helpers
+      // ══════════════════════════════════════════════
+      const checkRequiredProps = (obj, props) => {
+        for (const prop of props) {
+          if (!obj.hasOwnProperty(prop) || obj[prop] === "") {
+            return false;
+          }
+        }
+        return true;
+      };
+
+      // ══════════════════════════════════════════════
+      // sk_game single roll verification
+      // ══════════════════════════════════════════════
+      const checkSkRoll = async (data) => {
+        let html = "";
+
+        if (data.server_seed[0] === "*" || data.secret_salt[0] === "*") {
+          return '<p class="warning">Server Seed seems to be not yet revealed.<br> It is impossible to verify roll right now.</p>';
+        }
+
+        const clientSeed = data.combined_client_seed || data.client_seed;
+        const calculated = await calculateSkRoll(
+          data.server_seed,
           clientSeed,
-          nonce,
-          roll_max,
-        ) => {
-          const hash = CryptoJS.HmacSHA512(
-            serverSeed,
-            `${clientSeed}-${nonce}`
-          ).toString(CryptoJS.enc.Hex);
+          parseInt(data.nonce)
+        );
 
-          const subHash = hash.substring(0, ROLL_CHARS);
-          const decimal = BigInt(`0x${subHash}`);
-          const roll = decimal % BigInt(roll_max);
+        const expected = parseInt(
+          data.roll ?? data.original_roll ?? data.calculated_roll
+        );
 
-          return Number(roll);
-        };
+        const hasExpected = !isNaN(expected);
+        const isRollMatch = hasExpected && calculated === expected;
 
-        const calculatePublicHash = (secret, salt) => {
-          const hash = CryptoJS.HmacSHA256(secret, salt).toString(CryptoJS.enc.Hex);
-          return hash;
-        };
+        let overallSuccess = true;
 
-        const checkRequiredProps = (obj, props) => {
-          for (const prop of props) {
-            if (!obj.hasOwnProperty(prop) || obj[prop] === "") {
-              return false;
-            }
-          }
-          return true;
-        };
+        // Step 1: Verify HMAC roll
+        html += `<p><b>Step 1: HMAC Roll Verification (sk_game)</b><br>`;
+        html += `&nbsp;&nbsp;Scheme: <b>sk_game (% 100000 + 1)</b><br>`;
+        html += `&nbsp;&nbsp;Calculated Roll: <b>${calculated}</b><br>`;
+        if (hasExpected) {
+          html += `&nbsp;&nbsp;Original Roll: <b>${expected}</b><br>`;
+          html += isRollMatch
+            ? `&nbsp;&nbsp;<span class="check">&#10003;</span> HMAC roll matches original_roll<br>`
+            : `&nbsp;&nbsp;<span class="cross">&#10007;</span> HMAC roll does NOT match original_roll<br>`;
+          if (!isRollMatch) overallSuccess = false;
+        }
+        html += `</p>`;
 
-        const checkRegularRoll = (data) => {
-          let html = "";
-
-          const req = [
-            "server_seed",
-            "secret_salt",
-            "public_hash",
-            "client_seed",
-            "nonce",
-            "roll",
-          ];
-          if (typeof data !== "object" || !checkRequiredProps(data, req)) {
-            return '<p class="error">Your input is invalid.<br> Try copy JSON string from the site and paste here.</p>';
-          }
-          if (data.server_seed[0] === "*" || data.secret_salt[0] === "*") {
-            return '<p class="warning">Server Seed seems to be not yet revealed.<br> It is impossible to verify roll right now.</p>';
-          }
-
-          const calculated = generateRoll(
-            data.server_seed,
-            data.client_seed,
-            parseInt(data.nonce),
-            parseInt(data.drawable_total)
+        // Step 2: Tier bucket check (if odds_ranges provided)
+        if (
+          hasExpected &&
+          data.odds_ranges &&
+          Array.isArray(data.odds_ranges)
+        ) {
+          const bucketed = data.odds_ranges.find(
+            (r) =>
+              Number(expected) >= Number(r.range_min) &&
+              Number(expected) <= Number(r.range_max)
           );
-
-          const expected = parseInt(data.roll);
-          const merkleIndex = parseInt(data.merkle_index); // if provided
-
-          const hasExpected = !isNaN(expected);
-          const hasMerkleIndex = !isNaN(merkleIndex);
-          const isRollMatch = hasExpected && calculated === expected;
-
-          let overallSuccess = true;
-
-          // Step 1: Verify HMAC roll matches original_roll
-          html += `<p><b>Step 1: HMAC Roll Verification</b><br>`;
-          html += `&nbsp;&nbsp;Calculated Roll: <b>${calculated}</b><br>`;
-          if (hasExpected) {
-            html += `&nbsp;&nbsp;Original Roll: <b>${expected}</b><br>`;
-            html += isRollMatch
-              ? `&nbsp;&nbsp;<span class="check">&#10003;</span> HMAC roll matches original_roll<br>`
-              : `&nbsp;&nbsp;<span class="cross">&#10007;</span> HMAC roll does NOT match original_roll<br>`;
-            if (!isRollMatch) overallSuccess = false;
-          }
-          html += `</p>`;
-
-          // Step 2: Explain linear probing (if merkle_index differs from roll)
-          if (hasExpected && hasMerkleIndex) {
-            html += `<p><b>Step 2: Linear Probing</b><br>`;
-            html += `&nbsp;&nbsp;Original Roll: <b>${expected}</b><br>`;
-            html += `&nbsp;&nbsp;Merkle Index: <b>${merkleIndex}</b><br>`;
-            if (expected === merkleIndex) {
-              html += `&nbsp;&nbsp;<span class="check">&#10003;</span> No linear probing needed — position was available<br>`;
-            } else {
-              html += `&nbsp;&nbsp;<span class="warn">&#9888;</span> Linear probing applied: position ${expected} was already drawn, `;
-              html += `probed forward to ${merkleIndex}<br>`;
-              html += `&nbsp;&nbsp;<span class="dim">This is normal — the server cannot control which positions are occupied.</span><br>`;
-            }
-            html += `</p>`;
-          }
-
-          // Step 3: Public Hash Verification
-          const calculatedPublicHash = calculatePublicHash(
-            data.server_seed,
-            data.secret_salt
-          );
-          
-          let stepNumber = (hasExpected && hasMerkleIndex) ? 3 : 2;
-          
-          html += `<p><b>Step ${stepNumber}: Public Hash Verification</b><br>`;
-          html += `&nbsp;&nbsp;Original Public Hash:<br>&nbsp;&nbsp;<b>${data.public_hash}</b><br>`;
-          html += `&nbsp;&nbsp;Calculated Public Hash:<br>&nbsp;&nbsp;<b>${calculatedPublicHash}</b><br>`;
-          
-          if (data.public_hash === calculatedPublicHash) {
-            html += `&nbsp;&nbsp;<span class="check">&#10003;</span> Public Hash matches!<br>`;
+          html += `<p><b>Step 2: Tier Bucket</b><br>`;
+          if (bucketed) {
+            html += `&nbsp;&nbsp;<span class="check">&#10003;</span> Roll ${expected} falls in tier: <b>${bucketed.rarity_title}</b> (${bucketed.range_min}-${bucketed.range_max})<br>`;
           } else {
-            html += `&nbsp;&nbsp;<span class="cross">&#10007;</span> Public Hash mismatch.<br>`;
+            html += `&nbsp;&nbsp;<span class="cross">&#10007;</span> Roll ${expected} does not fall in any tier bucket<br>`;
             overallSuccess = false;
           }
           html += `</p>`;
+        }
 
-          html += `<hr>`;
+        // Step 3: Public Hash Verification
+        const calculatedPublicHash = await hmacSha256(
+          data.secret_salt,
+          data.server_seed
+        );
 
-          // Summary
-          html += `<p>`;
-          if (!hasExpected) {
-            html += `<span class="dim">No original_roll provided — showing calculated result only.</span>`;
-            overallSuccess = false;
-          } else if (isRollMatch) {
-            html += `<span class="check">&#10003;</span> <b>Roll is valid!</b> The draw was deterministic.`;
-            if (hasMerkleIndex && expected !== merkleIndex) {
-              html += `<br><span class="dim">The merkle_index (${merkleIndex}) differs from the roll (${expected}) due to linear probing — this is expected behavior.</span>`;
+        const stepNumber =
+          data.odds_ranges && Array.isArray(data.odds_ranges) ? 3 : 2;
+
+        html += `<p><b>Step ${stepNumber}: Public Hash Verification (HMAC-SHA256)</b><br>`;
+        html += `&nbsp;&nbsp;Original Public Hash:<br>&nbsp;&nbsp;<b>${data.public_hash}</b><br>`;
+        html += `&nbsp;&nbsp;Calculated Public Hash:<br>&nbsp;&nbsp;<b>${calculatedPublicHash}</b><br>`;
+
+        if (data.public_hash === calculatedPublicHash) {
+          html += `&nbsp;&nbsp;<span class="check">&#10003;</span> Public Hash matches!<br>`;
+        } else {
+          html += `&nbsp;&nbsp;<span class="cross">&#10007;</span> Public Hash mismatch.<br>`;
+          overallSuccess = false;
+        }
+        html += `</p>`;
+
+        html += `<hr>`;
+
+        // Summary
+        html += `<p>`;
+        if (!hasExpected) {
+          html += `<span class="dim">No original_roll provided — showing calculated result only.</span>`;
+          overallSuccess = false;
+        } else if (isRollMatch) {
+          html += `<span class="check">&#10003;</span> <b>Roll is valid!</b> The draw was deterministic.`;
+        } else {
+          html += `<span class="cross">&#10007;</span> <b>Roll mismatch.</b> Expected ${expected}, got ${calculated}.`;
+        }
+        html += `</p>`;
+
+        // Full hash for transparency
+        const { fullHash } = await rollRaw(
+          data.server_seed,
+          clientSeed,
+          data.nonce
+        );
+        html += `<p><span class="dim">Full HMAC-SHA512: ${fullHash.substring(0, 30)}...</span></p>`;
+
+        const boxClass =
+          overallSuccess && hasExpected
+            ? "result-success"
+            : !hasExpected
+              ? "result-partial"
+              : "result-error";
+
+        return `<div class="result-box ${boxClass}">${html}</div>`;
+      };
+
+      // ══════════════════════════════════════════════
+      // sk_bundle verification (audit data with server_seed object + rolls[])
+      // ══════════════════════════════════════════════
+      const checkSkBundle = async (data) => {
+        let html = "";
+        let allPassed = true;
+        const seed = data.server_seed;
+        const isRevealed =
+          !!seed.is_revealed && seed.server_seed && seed.secret_salt;
+
+        // Hash commitment
+        html += `<p><b>Step 1: Seed Commitment (HMAC-SHA256)</b><br>`;
+        if (isRevealed) {
+          const hash = await hmacSha256(seed.secret_salt, seed.server_seed);
+          const match = hash === seed.public_hash;
+          if (!match) allPassed = false;
+          html += `&nbsp;&nbsp;Public Hash: <b>${seed.public_hash}</b><br>`;
+          html += `&nbsp;&nbsp;Calculated Hash: <b>${hash}</b><br>`;
+          html += match
+            ? `&nbsp;&nbsp;<span class="check">&#10003;</span> Seed commitment is valid. Revealed seed matches the published hash.<br>`
+            : `&nbsp;&nbsp;<span class="cross">&#10007;</span> Seed commitment FAILED. Revealed seed does NOT match the published hash.<br>`;
+        } else {
+          html += `&nbsp;&nbsp;<span class="warn">&#9888;</span> Seed is not yet revealed; commitment check requires reveal.<br>`;
+        }
+        html += `</p>`;
+
+        // Per-roll loop
+        let okCount = 0;
+        let failCount = 0;
+        let rows = "";
+        for (const roll of data.rolls) {
+          if (!isRevealed) {
+            rows += `<tr><td>${roll.nonce}</td><td>${roll.roll ?? "-"}</td><td><span class="dim">(seed hidden)</span></td><td>${roll.result_game_item?.title || "-"}</td></tr>`;
+            continue;
+          }
+          const cs = roll.client_seed;
+          const calc = await calculateSkRoll(seed.server_seed, cs, roll.nonce);
+          const rollOk = calc === Number(roll.roll);
+          // Tier bucket check
+          const bucketed = (roll.odds_ranges || []).find(
+            (r) =>
+              Number(roll.roll) >= Number(r.range_min) &&
+              Number(roll.roll) <= Number(r.range_max)
+          );
+          if (rollOk && bucketed) okCount++;
+          else {
+            failCount++;
+            allPassed = false;
+          }
+          rows += `<tr>
+            <td>${roll.nonce}</td>
+            <td>${roll.roll ?? "-"}</td>
+            <td>${rollOk ? '<span class="check">&#10003;</span>' : '<span class="cross">&#10007;</span>'}</td>
+            <td>${bucketed?.rarity_title || '<span class="cross">no tier</span>'}: ${roll.result_game_item?.title || "-"}</td>
+          </tr>`;
+        }
+        html += `<p><b>Step 2: Per-roll Verification</b> (${data.rolls.length} rolls, ${okCount} ok, ${failCount} failed):</p>`;
+        html +=
+          `<table style="width:100%;font-size:12px;margin-top:6px;border-collapse:collapse">` +
+          `<thead><tr style="border-bottom:1px solid #999"><th align="left">Nonce</th><th align="left">Roll</th><th align="left">Roll OK</th><th align="left">Tier &amp; Card</th></tr></thead>` +
+          `<tbody>${rows}</tbody></table>`;
+
+        const boxClass = allPassed ? "result-success" : "result-error";
+        return `<div class="result-box ${boxClass}">${html}</div>`;
+      };
+
+      // ══════════════════════════════════════════════
+      // Main verification entry point
+      // ══════════════════════════════════════════════
+      const verifyRoll = async (rollData) => {
+        try {
+          const data = JSON.parse(rollData);
+          const shape = detectShape(data);
+
+          if (shape === "sk_bundle") {
+            return await checkSkBundle(data);
+          }
+
+          if (shape === "sk") {
+            // sk_game single roll
+            const req = ["server_seed", "secret_salt", "public_hash", "nonce"];
+            if (typeof data !== "object" || !checkRequiredProps(data, req)) {
+              return '<p class="error">Your input is invalid.<br> Try copy JSON string from the site and paste here.</p>';
             }
-          } else {
-            html += `<span class="cross">&#10007;</span> <b>Roll mismatch.</b> Expected ${expected}, got ${calculated}.`;
+            return await checkSkRoll(data);
           }
-          html += `</p>`;
 
-          // Full hash for transparency
-          const fullHash = CryptoJS.HmacSHA512(data.server_seed, `${data.client_seed}-${data.nonce}`).toString(CryptoJS.enc.Hex);
-          html += `<p><span class="dim">Full HMAC-SHA512: ${fullHash.substring(0, 30)}...</span></p>`;
-
-          const boxClass = overallSuccess && hasExpected ? 'result-success' : (!hasExpected ? 'result-partial' : 'result-error');
-
-          return `<div class="result-box ${boxClass}">${html}</div>`;
-        };
-
-        const verifyRoll = (rollData) => {
-          try {
-            const data = JSON.parse(rollData);
-            const message = checkRegularRoll(data);
-            return message;
-          } catch (_error) {
-            return "<p class='error'>Invalid JSON format. Please check your input.</p>";
+          if (shape === "op") {
+            return '<p class="warning">This looks like an op_game proof. Please use the <b>op-merkle-validator</b> or the combined <b>index.html</b> verifier for op_game data.</p>';
           }
-        };
+
+          return '<p class="error">Could not detect a sk_game or op_game proof shape in this JSON.<br>Try copy JSON string from the site and paste here.</p>';
+        } catch (_error) {
+          return "<p class='error'>Invalid JSON format. Please check your input.</p>";
+        }
+      };
     </script>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
       <div id="output"></div>
-        <h1>Enter Your Roll Data:</h1>
-        <textarea id="input" placeholder="Paste JSON here..."></textarea>
-        <button onclick="verifyInput()">Check!</button>
+      <h1>Enter Your Roll Data:</h1>
+      <textarea id="input" placeholder="Paste JSON here..."></textarea>
+      <button onclick="verifyInput()">Check!</button>
     </div>
     <script>
-        function verifyInput() {
-            const input = document.getElementById('input').value;
-            const result = verifyRoll(input);
-            document.getElementById('output').innerHTML = result;
-        }
+      async function verifyInput() {
+        const input = document.getElementById("input").value;
+        const result = await verifyRoll(input);
+        document.getElementById("output").innerHTML = result;
+      }
     </script>
-</body>
+  </body>
 </html>
