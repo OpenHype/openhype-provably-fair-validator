@@ -42,6 +42,34 @@
       #output {
         margin-top: 1rem;
       }
+      .info-top {
+        background-color: #e2e3e5;
+        color: black;
+        padding: 0.5rem;
+        border-radius: 0.25rem 0.25rem 0 0;
+        margin-top: 2rem;
+      }
+      .success-bottom {
+        color: #155724;
+        background-color: #d4edda;
+        padding: 0.5rem;
+        border-radius: 0 0 0.25rem 0.25rem;
+        margin-top: 0;
+      }
+      .error-bottom {
+        color: #721c24;
+        background-color: #f8d7da;
+        padding: 0.5rem;
+        border-radius: 0 0 0.25rem 0.25rem;
+        margin-top: 0;
+      }
+      .warning-bottom {
+        color: #856404;
+        background-color: #fff3cd;
+        padding: 0.5rem;
+        border-radius: 0 0 0.25rem 0.25rem;
+        margin-top: 0;
+      }
       .error {
         color: #721c24;
         background-color: #f8d7da;
@@ -55,7 +83,7 @@
         border-radius: 0.25rem;
       }
       .check {
-        color: #0ce83f;
+        color: #155724;
         font-weight: bold;
       }
       .cross {
@@ -70,23 +98,6 @@
         color: #6b7280;
         font-style: italic;
       }
-      .result-box {
-        background-color: #fff;
-        padding: 1.5rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        margin-top: 1rem;
-        line-height: 1.6;
-      }
-      .result-success {
-        border-left: 4px solid #155724;
-      }
-      .result-error {
-        border-left: 4px solid #721c24;
-      }
-      .result-partial {
-        border-left: 4px solid #856404;
-      }
       hr {
         border: 0;
         border-top: 1px solid #e5e7eb;
@@ -98,10 +109,40 @@
         border: 1px solid #d1d5db;
         border-radius: 0.25rem;
         overflow-x: auto;
-        margin-bottom: 1rem;
+        word-break: break-all;
+        white-space: pre-wrap;
       }
       p {
         margin-block-end: 0px;
+      }
+      .wrap-text {
+        word-wrap: break-word;
+        word-break: break-all;
+        overflow-wrap: break-word;
+        white-space: normal;
+      }
+      .final-result {
+        margin-top: 2rem;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        font-size: 1.1rem;
+        font-weight: bold;
+        text-align: center;
+      }
+      .final-success {
+        color: #155724;
+        background-color: #d4edda;
+        border: 2px solid #c3e6cb;
+      }
+      .final-error {
+        color: #721c24;
+        background-color: #f8d7da;
+        border: 2px solid #f5c6cb;
+      }
+      .final-partial {
+        color: #856404;
+        background-color: #fff3cd;
+        border: 2px solid #ffeeba;
       }
     </style>
     <script>
@@ -247,92 +288,74 @@
         const isRollMatch = hasExpected && calculated === expected;
 
         let overallSuccess = true;
+        let stepNum = 1;
 
-        // Step 1: Verify HMAC roll
-        html += `<p><b>Step 1: HMAC Roll Verification (sk_game)</b><br>`;
-        html += `&nbsp;&nbsp;Scheme: <b>sk_game (% 100000 + 1)</b><br>`;
-        html += `&nbsp;&nbsp;Calculated Roll: <b>${calculated}</b><br>`;
+        // Step 1: HMAC Roll Verification
+        let rollTopHtml = `${stepNum}. HMAC Roll Verification (sk_game):<br>
+          Scheme: <b>sk_game (% 100000 + 1)</b><br>
+          Calculated Roll: <b>${calculated}</b>`;
         if (hasExpected) {
-          html += `&nbsp;&nbsp;Original Roll: <b>${expected}</b><br>`;
-          html += isRollMatch
-            ? `&nbsp;&nbsp;<span class="check">&#10003;</span> HMAC roll matches original_roll<br>`
-            : `&nbsp;&nbsp;<span class="cross">&#10007;</span> HMAC roll does NOT match original_roll<br>`;
-          if (!isRollMatch) overallSuccess = false;
+          rollTopHtml += `<br>Original Roll: <b>${expected}</b>`;
         }
-        html += `</p>`;
+        html += `<p class='info-top'>${rollTopHtml}</p>`;
+        if (hasExpected) {
+          if (isRollMatch) {
+            html += `<p class='success-bottom'>✓ HMAC roll matches original_roll.</p>`;
+          } else {
+            html += `<p class='error-bottom'>✗ HMAC roll does NOT match original_roll.</p>`;
+            overallSuccess = false;
+          }
+        } else {
+          html += `<p class='warning-bottom'>⚠ No original_roll provided — showing calculated result only.</p>`;
+          overallSuccess = false;
+        }
+        stepNum++;
 
         // Step 2: Tier bucket check (if odds_ranges provided)
-        if (
-          hasExpected &&
-          data.odds_ranges &&
-          Array.isArray(data.odds_ranges)
-        ) {
+        if (hasExpected && data.odds_ranges && Array.isArray(data.odds_ranges)) {
           const bucketed = data.odds_ranges.find(
             (r) =>
               Number(expected) >= Number(r.range_min) &&
               Number(expected) <= Number(r.range_max)
           );
-          html += `<p><b>Step 2: Tier Bucket</b><br>`;
+          html += `<p class='info-top'>${stepNum}. Tier Bucket:<br>Roll: <b>${expected}</b></p>`;
           if (bucketed) {
-            html += `&nbsp;&nbsp;<span class="check">&#10003;</span> Roll ${expected} falls in tier: <b>${bucketed.rarity_title}</b> (${bucketed.range_min}-${bucketed.range_max})<br>`;
+            html += `<p class='success-bottom'>✓ Roll ${expected} falls in tier: <b>${bucketed.rarity_title}</b> (${bucketed.range_min}–${bucketed.range_max})</p>`;
           } else {
-            html += `&nbsp;&nbsp;<span class="cross">&#10007;</span> Roll ${expected} does not fall in any tier bucket<br>`;
+            html += `<p class='error-bottom'>✗ Roll ${expected} does not fall in any tier bucket.</p>`;
             overallSuccess = false;
           }
-          html += `</p>`;
+          stepNum++;
         }
 
-        // Step 3: Public Hash Verification
+        // Step N: Public Hash Verification
         const calculatedPublicHash = await hmacSha256(
           data.secret_salt,
           data.server_seed
         );
+        const hashMatch = data.public_hash === calculatedPublicHash;
+        if (!hashMatch) overallSuccess = false;
 
-        const stepNumber =
-          data.odds_ranges && Array.isArray(data.odds_ranges) ? 3 : 2;
+        html += `<p class='info-top'>${stepNum}. Public Hash Verification (HMAC-SHA256):<br>
+          Public Hash: <b class='wrap-text' style='display:inline-block;max-width:100%;'>${data.public_hash}</b><br>
+          Calculated Hash: <b class='wrap-text' style='display:inline-block;max-width:100%;'>${calculatedPublicHash}</b></p>`;
+        html += hashMatch
+          ? `<p class='success-bottom'>✓ Public Hash matches! Server seed is valid.</p>`
+          : `<p class='error-bottom'>✗ Public Hash mismatch.</p>`;
+        stepNum++;
 
-        html += `<p><b>Step ${stepNumber}: Public Hash Verification (HMAC-SHA256)</b><br>`;
-        html += `&nbsp;&nbsp;Original Public Hash:<br>&nbsp;&nbsp;<b>${data.public_hash}</b><br>`;
-        html += `&nbsp;&nbsp;Calculated Public Hash:<br>&nbsp;&nbsp;<b>${calculatedPublicHash}</b><br>`;
 
-        if (data.public_hash === calculatedPublicHash) {
-          html += `&nbsp;&nbsp;<span class="check">&#10003;</span> Public Hash matches!<br>`;
+
+        // Final result banner
+        if (overallSuccess && hasExpected) {
+          html += `<div class='final-result final-success'>✓ FINAL VERIFICATION: SUCCESS<br>All checks passed!</div>`;
+        } else if (!hasExpected) {
+          html += `<div class='final-result final-partial'>⚠ VERIFICATION: PARTIAL<br>No original roll to compare.</div>`;
         } else {
-          html += `&nbsp;&nbsp;<span class="cross">&#10007;</span> Public Hash mismatch.<br>`;
-          overallSuccess = false;
+          html += `<div class='final-result final-error'>✗ FINAL VERIFICATION: FAILED<br>Some checks did not pass. See details above.</div>`;
         }
-        html += `</p>`;
 
-        html += `<hr>`;
-
-        // Summary
-        html += `<p>`;
-        if (!hasExpected) {
-          html += `<span class="dim">No original_roll provided — showing calculated result only.</span>`;
-          overallSuccess = false;
-        } else if (isRollMatch) {
-          html += `<span class="check">&#10003;</span> <b>Roll is valid!</b> The draw was deterministic.`;
-        } else {
-          html += `<span class="cross">&#10007;</span> <b>Roll mismatch.</b> Expected ${expected}, got ${calculated}.`;
-        }
-        html += `</p>`;
-
-        // Full hash for transparency
-        const { fullHash } = await rollRaw(
-          data.server_seed,
-          clientSeed,
-          data.nonce
-        );
-        html += `<p><span class="dim">Full HMAC-SHA512: ${fullHash.substring(0, 30)}...</span></p>`;
-
-        const boxClass =
-          overallSuccess && hasExpected
-            ? "result-success"
-            : !hasExpected
-              ? "result-partial"
-              : "result-error";
-
-        return `<div class="result-box ${boxClass}">${html}</div>`;
+        return html;
       };
 
       // ══════════════════════════════════════════════
@@ -345,21 +368,21 @@
         const isRevealed =
           !!seed.is_revealed && seed.server_seed && seed.secret_salt;
 
-        // Hash commitment
-        html += `<p><b>Step 1: Seed Commitment (HMAC-SHA256)</b><br>`;
+        // Step 1: Seed Commitment
         if (isRevealed) {
           const hash = await hmacSha256(seed.secret_salt, seed.server_seed);
           const match = hash === seed.public_hash;
           if (!match) allPassed = false;
-          html += `&nbsp;&nbsp;Public Hash: <b>${seed.public_hash}</b><br>`;
-          html += `&nbsp;&nbsp;Calculated Hash: <b>${hash}</b><br>`;
+          html += `<p class='info-top'>1. Seed Commitment (HMAC-SHA256):<br>
+            Public Hash: <b class='wrap-text' style='display:inline-block;max-width:100%;'>${seed.public_hash}</b><br>
+            Calculated Hash: <b class='wrap-text' style='display:inline-block;max-width:100%;'>${hash}</b></p>`;
           html += match
-            ? `&nbsp;&nbsp;<span class="check">&#10003;</span> Seed commitment is valid. Revealed seed matches the published hash.<br>`
-            : `&nbsp;&nbsp;<span class="cross">&#10007;</span> Seed commitment FAILED. Revealed seed does NOT match the published hash.<br>`;
+            ? `<p class='success-bottom'>✓ Seed commitment is VALID! Revealed seed matches the published hash.</p>`
+            : `<p class='error-bottom'>✗ Seed commitment FAILED! Revealed seed does NOT match the published hash.</p>`;
         } else {
-          html += `&nbsp;&nbsp;<span class="warn">&#9888;</span> Seed is not yet revealed; commitment check requires reveal.<br>`;
+          html += `<p class='info-top'>1. Seed Commitment:</p>`;
+          html += `<p class='warning-bottom'>⚠ Seed is not yet revealed; commitment check requires reveal.</p>`;
         }
-        html += `</p>`;
 
         // Per-roll loop
         let okCount = 0;
@@ -391,14 +414,21 @@
             <td>${bucketed?.rarity_title || '<span class="cross">no tier</span>'}: ${roll.result_game_item?.title || "-"}</td>
           </tr>`;
         }
-        html += `<p><b>Step 2: Per-roll Verification</b> (${data.rolls.length} rolls, ${okCount} ok, ${failCount} failed):</p>`;
+
+        html += `<p class='info-top'>2. Per-roll Verification (${data.rolls.length} rolls, ${okCount} ok, ${failCount} failed):</p>`;
+        html += `<div style='background-color:#e2e3e5;padding:0.5rem;border-radius:0 0 0.25rem 0.25rem;'>`;
         html +=
           `<table style="width:100%;font-size:12px;margin-top:6px;border-collapse:collapse">` +
           `<thead><tr style="border-bottom:1px solid #999"><th align="left">Nonce</th><th align="left">Roll</th><th align="left">Roll OK</th><th align="left">Tier &amp; Card</th></tr></thead>` +
           `<tbody>${rows}</tbody></table>`;
+        html += `</div>`;
 
-        const boxClass = allPassed ? "result-success" : "result-error";
-        return `<div class="result-box ${boxClass}">${html}</div>`;
+        // Final result banner
+        html += allPassed
+          ? `<div class='final-result final-success'>✓ FINAL VERIFICATION: SUCCESS<br>All checks passed!</div>`
+          : `<div class='final-result final-error'>✗ FINAL VERIFICATION: FAILED<br>Some checks did not pass. See details above.</div>`;
+
+        return html;
       };
 
       // ══════════════════════════════════════════════
