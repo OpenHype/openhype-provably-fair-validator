@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Unlimited Pack Validator — OpenHype</title>
+    <title>Limited Pack Validator — OpenHype</title>
     <meta
       name="description"
-      content="Independently verify the fairness of your OpenHype unlimited pack draws. 100% client-side, open-source provably fair verification tool."
+      content="Independently verify the fairness of your OpenHype limited pack draws with Merkle proofs. 100% client-side, open-source provably fair verification tool."
     />
-    <link rel="icon" href="favicon.ico" />
+    <link rel="icon" href="../favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -459,44 +459,6 @@
         color: var(--amber-warning);
       }
 
-      /* Rolls table */
-      .rolls-table-wrap {
-        padding: 0 18px 14px 18px;
-        overflow-x: auto;
-      }
-      .rolls-table {
-        width: 100%;
-        font-size: 12px;
-        border-collapse: collapse;
-        margin-top: 8px;
-      }
-      .rolls-table th {
-        text-align: left;
-        padding: 8px 10px;
-        font-weight: 600;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        font-size: 10px;
-        letter-spacing: 0.06em;
-        border-bottom: 1px solid var(--border-subtle);
-      }
-      .rolls-table td {
-        padding: 7px 10px;
-        color: var(--text-secondary);
-        border-bottom: 1px solid #f4f4f5;
-      }
-      .rolls-table tr:last-child td {
-        border-bottom: none;
-      }
-      .rolls-table .check {
-        color: var(--green-primary);
-        font-weight: 700;
-      }
-      .rolls-table .cross {
-        color: var(--red-error);
-        font-weight: 700;
-      }
-
       /* Final banner */
       .final-banner {
         margin-top: 16px;
@@ -700,7 +662,7 @@
           class="header-logo"
           id="header-logo"
         >
-          <img src="openhype-logo.png" alt="OpenHype" />
+          <img src="../openhype-logo.png" alt="OpenHype" />
         </a>
         <h1 class="header-title">Provably Fair Validator</h1>
         <p class="header-subtitle">
@@ -717,12 +679,12 @@
 
       <!-- ═══ Page Switch ═══ -->
       <div class="page-switch" id="page-switch">
-        <a href="./" class="active" id="switch-unlimited">
+        <a href="../" id="switch-unlimited">
           <!-- Infinity icon -->
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.74-8z"/></svg>
           Unlimited Packs / Battles
         </a>
-        <a href="./limited/" id="switch-limited">
+        <a href="./" class="active" id="switch-limited">
           <!-- Box icon -->
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
           Limited Packs
@@ -737,7 +699,7 @@
           Verification Data
         </div>
         <div class="input-card-hint">
-          Paste JSON from OpenHype to verify your unlimited pack draw results.
+          Paste JSON from OpenHype to verify your limited pack draw results with Merkle proofs.
         </div>
         <textarea
           id="input"
@@ -747,9 +709,12 @@
 {
   "server_seed": "...",
   "client_seed": "...",
-  "secret_salt": "...",
-  "public_hash": "...",
-  "nonce": 0,
+  "merkle_root": "...",
+  "merkle_proof": [...],
+  "merkle_index": 0,
+  "pack_uuid": "...",
+  "product_title": "...",
+  "product_uuid": "...",
   ...
 }'
           spellcheck="false"
@@ -780,27 +745,15 @@
           </a>
           <div class="footer-divider"></div>
           <a
-            href="https://openhype.com/provably-fair/docs/infinite-packs"
+            href="https://openhype.com/provably-fair/docs/limited-packs"
             target="_blank"
             rel="noopener noreferrer"
             class="footer-link"
-            id="footer-learn-infinite"
+            id="footer-learn-limited"
           >
             <!-- External link icon -->
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Infinite Packs
-          </a>
-          <div class="footer-divider"></div>
-          <a
-            href="https://openhype.com/provably-fair/docs/battles"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="footer-link"
-            id="footer-learn-battles"
-          >
-            <!-- External link icon -->
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Battles
+            Learn More
           </a>
           <div class="footer-divider"></div>
           <span class="footer-link" style="cursor: default">
@@ -823,6 +776,13 @@
         return Array.from(new Uint8Array(buf))
           .map((b) => b.toString(16).padStart(2, "0"))
           .join("");
+      }
+
+      function hexToBuf(hex) {
+        const bytes = new Uint8Array(
+          hex.match(/.{1,2}/g).map((b) => parseInt(b, 16))
+        );
+        return bytes.buffer;
       }
 
       // ══════════════════════════════════════════════
@@ -863,7 +823,7 @@
       }
 
       // ══════════════════════════════════════════════
-      // Roll math (Unlimited Pack)
+      // Roll math (Limited Pack)
       // ══════════════════════════════════════════════
       const ROLL_CHARS = 15;
 
@@ -874,33 +834,101 @@
         return { raw: BigInt(`0x${subHash}`), fullHash: hash };
       }
 
-      // Unlimited pack tier roll: % 100000 + 1, range [1, 100000]
-      async function calculateRoll(serverSeed, clientSeed, nonce) {
+      // Limited pack card roll: % remainingLength, range [0, remainingLength)
+      async function calculateRoll(
+        serverSeed,
+        clientSeed,
+        nonce,
+        remainingLength
+      ) {
         const { raw } = await rollRaw(serverSeed, clientSeed, nonce);
-        return Number(raw % 100000n) + 1;
+        return Number(raw % BigInt(remainingLength));
       }
 
       // ══════════════════════════════════════════════
-      // JSON shape detection (Unlimited Pack)
+      // Merkle proof (Limited Packs)
       // ══════════════════════════════════════════════
-      function detectShape(data) {
-        // Bundle: server_seed is an object with rolls array
-        if (
-          data &&
-          data.server_seed &&
-          typeof data.server_seed === "object" &&
-          Array.isArray(data.rolls)
-        ) {
-          return "bundle";
+      async function computeLeafHash(
+        merkleIndex,
+        packUuid,
+        productTitle,
+        productUuid
+      ) {
+        const data = `${merkleIndex}:${packUuid}:${productTitle.trim()}:${productUuid}`;
+        const hash = await crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(data)
+        );
+        return { hex: bufToHex(hash), bytes: new Uint8Array(hash) };
+      }
+
+      async function verifyMerkleProofFromLeaf(leafBytes, proof, merkleRoot) {
+        let currentHash = leafBytes;
+        for (const step of proof) {
+          let pairData;
+          if (
+            step.data &&
+            step.data.type === "Buffer" &&
+            Array.isArray(step.data.data)
+          ) {
+            pairData = new Uint8Array(step.data.data);
+          } else if (typeof step.data === "string") {
+            pairData = new Uint8Array(hexToBuf(step.data));
+          } else {
+            throw new Error("Unsupported proof data format");
+          }
+
+          let combined;
+          if (step.position === "left") {
+            combined = new Uint8Array([...pairData, ...currentHash]);
+          } else {
+            combined = new Uint8Array([...currentHash, ...pairData]);
+          }
+          currentHash = new Uint8Array(
+            await crypto.subtle.digest("SHA-256", combined)
+          );
         }
-        // Single: server_seed is a string with client_seed and nonce
-        if (
-          data.server_seed &&
-          (data.client_seed || data.combined_client_seed) &&
-          data.nonce !== undefined
-        )
-          return "single";
-        return "unknown";
+        return bufToHex(currentHash.buffer) === merkleRoot.toLowerCase();
+      }
+
+      // ══════════════════════════════════════════════
+      // Full-history replay (Limited Packs)
+      // ══════════════════════════════════════════════
+      async function verifyFullHistory(serverSeed, drawableTotal, history) {
+        const sorted = [...history].sort(
+          (a, b) => Number(a.nonce) - Number(b.nonce)
+        );
+        const remaining = Array.from({ length: drawableTotal }, (_, i) => i);
+        const results = [];
+        for (const draw of sorted) {
+          if (remaining.length === 0) {
+            results.push({
+              nonce: draw.nonce,
+              ok: false,
+              reason: "remaining list exhausted",
+            });
+            continue;
+          }
+          const roll = await calculateRoll(
+            serverSeed,
+            draw.client_seed,
+            draw.nonce,
+            remaining.length
+          );
+          const picked = remaining[roll];
+          const ok = picked === Number(draw.merkle_index);
+          results.push({
+            nonce: draw.nonce,
+            roll,
+            remaining: remaining.length,
+            picked,
+            expected: Number(draw.merkle_index),
+            ok,
+          });
+          const idx = remaining.indexOf(Number(draw.merkle_index));
+          if (idx !== -1) remaining.splice(idx, 1);
+        }
+        return results;
       }
 
       // ══════════════════════════════════════════════
@@ -926,7 +954,7 @@
       }
 
       // ══════════════════════════════════════════════
-      // Main verification entry point (Unlimited Pack)
+      // Main verification entry point (Limited Pack)
       // ══════════════════════════════════════════════
       async function verifyInput() {
         const outputEl = document.getElementById("output");
@@ -947,11 +975,19 @@
           return;
         }
 
-        const shape = detectShape(data);
+        // Validate this is limited pack data
+        const hasMerkle =
+          data.merkle_index !== undefined &&
+          (data.merkle_proof !== undefined || data.merkle_root !== undefined);
+        const hasLimitedFields =
+          hasMerkle ||
+          data.pack_uuid !== undefined ||
+          data.product_uuid !== undefined ||
+          data.product_title !== undefined;
 
-        if (shape === "unknown") {
+        if (!hasLimitedFields) {
           outputEl.innerHTML =
-            '<div class="msg-error">✗ Could not detect valid unlimited pack verification fields in this JSON. If you are verifying a limited pack, please switch to the Limited Pack validator.</div>';
+            '<div class="msg-error">✗ Could not detect valid limited pack verification fields in this JSON. If you are verifying an unlimited pack, please switch to the Unlimited Pack validator.</div>';
           return;
         }
 
@@ -961,230 +997,164 @@
         let anyRun = false;
         let stepNum = 1;
 
-        // ── Audit bundle (multiple rolls) ──
-        if (shape === "bundle") {
-          anyRun = true;
-          const seed = data.server_seed;
-          const isRevealed =
-            !!seed.is_revealed && seed.server_seed && seed.secret_salt;
-
-          // Step: Seed commitment
-          if (isRevealed) {
-            const hash = await hmacSha256(seed.secret_salt, seed.server_seed);
-            const match = hash === seed.public_hash;
+        // Hash commitment check
+        if (data.server_seed && data.secret_salt && data.public_hash) {
+          if (
+            typeof data.server_seed === "string" &&
+            data.server_seed[0] === "*"
+          ) {
+            anyRun = true;
+            html += stepCard(
+              stepNum,
+              "warning",
+              "Hash Commitment (HMAC-SHA256)",
+              `<span class="label">Status:</span> Server seed is not yet revealed`,
+              "⚠ Server seed appears hidden. Verification will be possible once the seed is revealed.",
+              "warning"
+            );
+            stepNum++;
+          } else {
+            anyRun = true;
+            const hash = await hmacSha256(data.secret_salt, data.server_seed);
+            const match = hash === data.public_hash;
             if (!match) allPassed = false;
             html += stepCard(
               stepNum,
               match ? "success" : "error",
-              "Seed Commitment (HMAC-SHA256)",
-              `<span class="label">Public Hash:</span><br><span class="value">${escapeHtml(seed.public_hash)}</span><br>
+              "Hash Commitment (HMAC-SHA256)",
+              `<span class="label">Public Hash:</span><br><span class="value">${escapeHtml(data.public_hash)}</span><br>
                <span class="label">Calculated:</span><br><span class="value">${escapeHtml(hash)}</span>`,
               match
-                ? "✓ Seed commitment is valid — revealed seed matches the published hash."
-                : "✗ Seed commitment failed — revealed seed does NOT match.",
+                ? "✓ Hash commitment is valid — server seed matches the pre-published hash."
+                : "✗ Hash commitment failed — seed does NOT match the published hash.",
               match ? "success" : "error"
             );
-          } else {
+            stepNum++;
+          }
+        }
+
+        // Merkle leaf check
+        if (
+          data.merkle_root &&
+          data.merkle_index !== undefined &&
+          data.pack_uuid &&
+          data.product_title !== undefined &&
+          data.product_uuid &&
+          data.merkle_proof
+        ) {
+          anyRun = true;
+          try {
+            const leaf = await computeLeafHash(
+              data.merkle_index,
+              data.pack_uuid,
+              data.product_title,
+              data.product_uuid
+            );
+            const valid = await verifyMerkleProofFromLeaf(
+              leaf.bytes,
+              data.merkle_proof,
+              data.merkle_root
+            );
+            if (!valid) allPassed = false;
             html += stepCard(
               stepNum,
-              "warning",
-              "Seed Commitment",
-              `<span class="label">Status:</span> Seed not yet revealed`,
-              "⚠ Commitment check requires seed reveal.",
-              "warning"
+              valid ? "success" : "error",
+              "Merkle Proof Verification",
+              `<span class="label">Leaf Preimage:</span><br><span class="value">${escapeHtml(
+                `${data.merkle_index}:${data.pack_uuid}:${data.product_title.trim()}:${data.product_uuid}`
+              )}</span><br>
+               <span class="label">Computed Leaf Hash:</span><br><span class="value">${leaf.hex}</span><br>
+               <span class="label">Merkle Root:</span><br><span class="value">${escapeHtml(data.merkle_root)}</span><br>
+               <span class="label">Proof Steps:</span> ${data.merkle_proof.length}`,
+              valid
+                ? `✓ Merkle proof is valid — "${escapeHtml(data.product_title)}" was committed at position ${data.merkle_index} before sale.`
+                : "✗ Merkle proof is invalid — product identity or position does not match the published root.",
+              valid ? "success" : "error"
+            );
+          } catch (e) {
+            allPassed = false;
+            html += stepCard(
+              stepNum,
+              "error",
+              "Merkle Proof Verification",
+              `<span class="label">Merkle Index:</span> ${data.merkle_index}`,
+              `✗ Error: ${escapeHtml(e.message)}`,
+              "error"
             );
           }
-          stepNum++;
-
-          // Per-roll verification
-          let okCount = 0;
-          let failCount = 0;
-          let rows = "";
-          for (const roll of data.rolls) {
-            if (!isRevealed) {
-              rows += `<tr><td>${roll.nonce}</td><td>${roll.roll ?? "-"}</td><td><span style="color:var(--text-muted)">—</span></td><td>${escapeHtml(roll.result_game_item?.title || "-")}</td></tr>`;
-              continue;
-            }
-            const cs = roll.client_seed;
-            const calc = await calculateRoll(seed.server_seed, cs, roll.nonce);
-            const rollOk = calc === Number(roll.roll);
-            const bucketed = (roll.odds_ranges || []).find(
-              (r) =>
-                Number(roll.roll) >= Number(r.range_min) &&
-                Number(roll.roll) <= Number(r.range_max)
-            );
-            if (rollOk && bucketed) okCount++;
-            else {
-              failCount++;
-              allPassed = false;
-            }
-            rows += `<tr>
-              <td>${roll.nonce}</td>
-              <td>${roll.roll ?? "-"}</td>
-              <td>${rollOk ? '<span class="check">✓</span>' : '<span class="cross">✗</span>'}</td>
-              <td>${escapeHtml(bucketed?.rarity_title || "no tier")}: ${escapeHtml(roll.result_game_item?.title || "-")}</td>
-            </tr>`;
-          }
-
-          const rollStatus =
-            failCount === 0 && isRevealed ? "success" : failCount > 0 ? "error" : "warning";
-          html += `<div class="step-card">
-            <div class="step-header">
-              <div class="step-number ${rollStatus}">${stepNum}</div>
-              <div class="step-body">
-                <div class="step-title">Per-Roll Verification</div>
-                <div class="step-detail">
-                  <span class="label">Total Rolls:</span> ${data.rolls.length} &nbsp;·&nbsp;
-                  <span style="color:var(--green-primary)">✓ ${okCount} passed</span> &nbsp;·&nbsp;
-                  <span style="color:var(--red-error)">${failCount > 0 ? "✗ " : ""}${failCount} failed</span>
-                </div>
-              </div>
-            </div>
-            <div class="rolls-table-wrap">
-              <table class="rolls-table">
-                <thead><tr><th>Nonce</th><th>Roll</th><th>Match</th><th>Tier & Card</th></tr></thead>
-                <tbody>${rows}</tbody>
-              </table>
-            </div>
-          </div>`;
           stepNum++;
         }
-        // ── Single draw ──
-        else if (shape === "single") {
-          // Hash commitment check
-          if (data.server_seed && data.secret_salt && data.public_hash) {
-            if (
-              typeof data.server_seed === "string" &&
-              data.server_seed[0] === "*"
-            ) {
-              anyRun = true;
-              html += stepCard(
-                stepNum,
-                "warning",
-                "Hash Commitment (HMAC-SHA256)",
-                `<span class="label">Status:</span> Server seed is not yet revealed`,
-                "⚠ Server seed appears hidden. Verification will be possible once the seed is revealed.",
-                "warning"
-              );
-              stepNum++;
-            } else {
-              anyRun = true;
-              const hash = await hmacSha256(data.secret_salt, data.server_seed);
-              const match = hash === data.public_hash;
-              if (!match) allPassed = false;
-              html += stepCard(
-                stepNum,
-                match ? "success" : "error",
-                "Hash Commitment (HMAC-SHA256)",
-                `<span class="label">Public Hash:</span><br><span class="value">${escapeHtml(data.public_hash)}</span><br>
-                 <span class="label">Calculated:</span><br><span class="value">${escapeHtml(hash)}</span>`,
-                match
-                  ? "✓ Hash commitment is valid — server seed matches the pre-published hash."
-                  : "✗ Hash commitment failed — seed does NOT match the published hash.",
-                match ? "success" : "error"
-              );
-              stepNum++;
+
+        // Full-history replay
+        const history = data.draws || data.draw_history;
+        if (
+          data.server_seed &&
+          typeof data.server_seed === "string" &&
+          data.server_seed[0] !== "*" &&
+          data.drawable_total &&
+          Array.isArray(history) &&
+          history.length > 0
+        ) {
+          anyRun = true;
+          const results = await verifyFullHistory(
+            data.server_seed,
+            data.drawable_total,
+            history
+          );
+          const failed = results.filter((r) => !r.ok);
+          if (failed.length > 0) allPassed = false;
+
+          let replayDetail = `<span class="label">Total Draws:</span> ${results.length}<br>
+            <span class="label">Drawable Total:</span> ${data.drawable_total}`;
+
+          // Highlight user's draw
+          if (data.nonce !== undefined) {
+            const mine = results.find(
+              (r) => Number(r.nonce) === Number(data.nonce)
+            );
+            if (mine) {
+              replayDetail += mine.ok
+                ? `<br><span class="label">Your Draw (nonce ${data.nonce}):</span> roll ${mine.roll} of ${mine.remaining} remaining → position ${mine.picked}`
+                : `<br><span class="label" style="color:var(--red-error)">Your Draw (nonce ${data.nonce}):</span> expected position ${mine.expected}, got ${mine.picked}`;
             }
           }
 
-          // HMAC roll verification
-          if (
-            data.server_seed &&
-            (data.client_seed || data.combined_client_seed) &&
-            data.nonce !== undefined
-          ) {
-            if (
-              typeof data.server_seed === "string" &&
-              data.server_seed[0] === "*"
-            ) {
-              // Already showed warning above
-            } else {
-              anyRun = true;
-              const cs = data.combined_client_seed || data.client_seed;
-              const calc = await calculateRoll(
-                data.server_seed,
-                cs,
-                parseInt(data.nonce)
-              );
-              const expected = parseInt(
-                data.roll ?? data.original_roll ?? data.calculated_roll
-              );
-              const hasExpected = !isNaN(expected);
-              const isRollMatch = hasExpected && calc === expected;
-
-              let detailHtml = `<span class="label">Scheme:</span> HMAC-SHA512 (% 100,000 + 1)<br>
-                <span class="label">Calculated Roll:</span> <strong>${calc}</strong>`;
-              if (hasExpected) {
-                detailHtml += `<br><span class="label">Original Roll:</span> <strong>${expected}</strong>`;
-              }
-
-              let resultHtml, resultStatus, stepStatus;
-              if (hasExpected) {
-                if (isRollMatch) {
-                  resultHtml = "✓ HMAC roll matches the original recorded roll.";
-                  resultStatus = "success";
-                  stepStatus = "success";
-                } else {
-                  resultHtml =
-                    "✗ HMAC roll does NOT match the original recorded roll.";
-                  resultStatus = "error";
-                  stepStatus = "error";
-                  allPassed = false;
-                }
-              } else {
-                resultHtml =
-                  "⚠ No original roll provided — showing calculated result only.";
-                resultStatus = "warning";
-                stepStatus = "warning";
-                allPassed = false;
-              }
-
-              html += stepCard(
-                stepNum,
-                stepStatus,
-                "Roll Verification (HMAC-SHA512)",
-                detailHtml,
-                resultHtml,
-                resultStatus
-              );
-              stepNum++;
-
-              // Tier bucket check
-              if (
-                hasExpected &&
-                data.odds_ranges &&
-                Array.isArray(data.odds_ranges)
-              ) {
-                const bucketed = data.odds_ranges.find(
-                  (r) =>
-                    Number(expected) >= Number(r.range_min) &&
-                    Number(expected) <= Number(r.range_max)
-                );
-                if (bucketed) {
-                  html += stepCard(
-                    stepNum,
-                    "success",
-                    "Tier Bucket Verification",
-                    `<span class="label">Roll:</span> <strong>${expected}</strong><br>
-                     <span class="label">Tier:</span> <strong>${escapeHtml(bucketed.rarity_title)}</strong> (${bucketed.range_min}–${bucketed.range_max})`,
-                    `✓ Roll ${expected} correctly falls in tier: ${escapeHtml(bucketed.rarity_title)}`,
-                    "success"
-                  );
-                } else {
-                  html += stepCard(
-                    stepNum,
-                    "error",
-                    "Tier Bucket Verification",
-                    `<span class="label">Roll:</span> <strong>${expected}</strong>`,
-                    `✗ Roll ${expected} does not fall in any defined tier bucket.`,
-                    "error"
-                  );
-                  allPassed = false;
-                }
-                stepNum++;
-              }
-            }
-          }
+          html += stepCard(
+            stepNum,
+            failed.length === 0 ? "success" : "error",
+            "Full-History Replay",
+            replayDetail,
+            failed.length === 0
+              ? `✓ All ${results.length} draws reproduced from the committed server seed.`
+              : `✗ ${results.length - failed.length}/${results.length} draws reproduced (${failed.length} failed).`,
+            failed.length === 0 ? "success" : "error"
+          );
+          stepNum++;
+        } else if (
+          data.server_seed &&
+          typeof data.server_seed === "string" &&
+          data.server_seed[0] !== "*" &&
+          (data.client_seed || data.combined_client_seed) &&
+          data.nonce !== undefined &&
+          !history
+        ) {
+          // No history: show raw HMAC
+          anyRun = true;
+          const cs = data.combined_client_seed || data.client_seed;
+          const { fullHash } = await rollRaw(
+            data.server_seed,
+            cs,
+            data.nonce
+          );
+          html += stepCard(
+            stepNum,
+            "warning",
+            "Roll (HMAC-SHA512)",
+            `<span class="label">HMAC Computed:</span><br><span class="value">${fullHash.substring(0, 40)}...</span>`,
+            "⚠ Full replay requires the draw history (draws[]); without it the per-draw modulus is not reproducible.",
+            "warning"
+          );
+          stepNum++;
         }
 
         if (!anyRun) {
