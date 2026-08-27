@@ -392,6 +392,7 @@
             "user_id": 1,
             "awarded_item": {
               "uuid": "item-1",
+              "user_id": 1,
               "catalog_item_id": 1,
               "inventory_item_id": 101
             }
@@ -403,6 +404,7 @@
             "user_id": 2,
             "awarded_item": {
               "uuid": "item-2",
+              "user_id": 2,
               "catalog_item_id": 2,
               "inventory_item_id": 102
             }
@@ -414,6 +416,7 @@
             "user_id": 1,
             "awarded_item": {
               "uuid": "item-3",
+              "user_id": 1,
               "catalog_item_id": 2,
               "inventory_item_id": 103
             }
@@ -425,6 +428,7 @@
             "user_id": 1,
             "awarded_item": {
               "uuid": "item-4",
+              "user_id": 1,
               "catalog_item_id": 2,
               "inventory_item_id": 104
             }
@@ -436,6 +440,7 @@
             "user_id": 2,
             "awarded_item": {
               "uuid": "item-5",
+              "user_id": 2,
               "catalog_item_id": 2,
               "inventory_item_id": 105
             }
@@ -718,6 +723,7 @@
                 typeof item.uuid === "string" &&
                 item.uuid.length > 0 &&
                 prize &&
+                Number(item.user_id) === Number(r.user_id) &&
                 Number(item.catalog_item_id) === prize.catalog_item_id &&
                 (item.inventory_item_id == null ||
                   integer(item.inventory_item_id))
