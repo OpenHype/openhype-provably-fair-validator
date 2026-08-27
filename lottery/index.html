@@ -1,0 +1,939 @@
+<!doctype html>
+<!-- Single-file public verifier. No build step or local assets. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Lottery Validator — OpenHype</title>
+    <meta
+      name="description"
+      content="Independently reproduce an OpenHype Lottery draw from its public fairness transcript."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+        background: #10141c;
+        color: #edf0f6;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 48px 20px;
+      }
+      h1 {
+        margin: 8px 0;
+        font-size: 32px;
+        letter-spacing: -1px;
+      }
+      h2 {
+        margin: 0 0 16px;
+        font-size: 22px;
+      }
+      p {
+        line-height: 1.6;
+      }
+      .muted,
+      small {
+        color: #a6afbe;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 12px;
+        color: #e7ba69;
+      }
+      .validator-nav {
+        display: flex;
+        gap: 8px;
+        margin: 24px 0;
+        padding: 4px;
+        border: 1px solid #313a4b;
+        border-radius: 10px;
+        background: #19202c;
+      }
+      .validator-nav a {
+        flex: 1;
+        padding: 9px 8px;
+        border-radius: 7px;
+        color: #a6afbe;
+        text-align: center;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .validator-nav a[aria-current="page"] {
+        color: #171c26;
+        background: #e7ba69;
+      }
+      a {
+        color: #e7ba69;
+      }
+      header,
+      section {
+        margin-bottom: 24px;
+      }
+      section {
+        background: #19202c;
+        border: 1px solid #313a4b;
+        padding: 24px;
+        border-radius: 16px;
+      }
+      label {
+        display: block;
+        margin: 12px 0 8px;
+        font-weight: 600;
+      }
+      textarea,
+      input {
+        width: 100%;
+        padding: 14px;
+        background: #111722;
+        color: #edf0f6;
+        border: 1px solid #4c586e;
+        border-radius: 8px;
+        font:
+          13px ui-monospace,
+          monospace;
+      }
+      textarea {
+        min-height: 230px;
+        resize: vertical;
+      }
+      textarea:focus,
+      input:focus,
+      button:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid #e7ba69;
+        outline-offset: 3px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 20px;
+      }
+      button {
+        border: 1px solid #e7ba69;
+        border-radius: 8px;
+        background: #e7ba69;
+        color: #171c26;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.secondary {
+        color: #edf0f6;
+        background: transparent;
+        border-color: #4c586e;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+      details {
+        margin-top: 20px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .check {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 16px;
+        padding: 10px 0;
+        border-bottom: 1px solid #313a4b;
+      }
+      .pass {
+        color: #71d7ad;
+      }
+      .fail,
+      #error {
+        color: #ffa3a3;
+      }
+      .unknown {
+        color: #e7ba69;
+      }
+      #winner {
+        font-size: 18px;
+        font-weight: 600;
+      }
+      #error {
+        overflow-wrap: anywhere;
+      }
+      pre {
+        overflow: auto;
+        max-height: 440px;
+        padding: 16px;
+        background: #111722;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      footer {
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 480px) {
+        body {
+          padding: 24px 14px;
+        }
+        section {
+          padding: 18px;
+        }
+        .check {
+          font-size: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">
+        OpenHype · Independent verification · Contract v1
+      </div>
+      <h1>Lottery Validator</h1>
+      <p class="muted">
+        Copy the verification JSON from a settled lottery, paste it here, and
+        reproduce the draw.
+      </p>
+      <a href="#how-it-works">How it works &amp; algorithm source</a>
+    </header>
+    <nav class="validator-nav" aria-label="Validator type">
+      <a href="../">Unlimited</a>
+      <a href="../limited/">Limited</a>
+      <a href="./" aria-current="page">Lottery</a>
+    </nav>
+    <main>
+      <section>
+        <label for="payload">Settled lottery JSON</label>
+        <textarea
+          id="payload"
+          spellcheck="false"
+          placeholder="Paste JSON from GET /game_lottery/:uuid/fairness."
+        ></textarea>
+        <p class="muted">
+          <small
+            >Your JSON stays in this browser. This page does not contact the
+            lottery platform or send your JSON to GitHub. It only reads the
+            selected round from the official drand public API.</small
+          >
+        </p>
+        <details>
+          <summary>Optional independently saved evidence</summary>
+          <label for="publishedCommitment"
+            >Published commitment saved before ticket sales</label
+          >
+          <input
+            id="publishedCommitment"
+            placeholder="Published SHA-256 hash (optional)"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <p class="muted">
+            <small
+              >The published hash binds the prize set, ticket count, draw
+              contract and entropy rule before sales. A hash copied only from
+              settled JSON proves consistency, not when it was published.</small
+            >
+          </p>
+        </details>
+        <div class="actions">
+          <button id="verify" type="button">Verify draw</button>
+          <button id="example" class="secondary" type="button">
+            Try example
+          </button>
+        </div>
+        <p id="error" role="alert" hidden></p>
+      </section>
+      <section id="result" aria-live="polite" hidden>
+        <h2 id="headline"></h2>
+        <p id="winner"></p>
+        <div id="checks"></div>
+        <p id="randomnessDetail" class="muted"></p>
+        <a id="drandLink" target="_blank" rel="noopener noreferrer" hidden
+          >View original drand round</a
+        >
+        <details>
+          <summary>Technical checks</summary>
+          <div id="technical"></div>
+        </details>
+        <p class="muted">
+          <small
+            >Matching results prove that the supplied awards follow from the
+            supplied tickets, committed prizes and public randomness. An
+            independently saved pre-sale hash additionally proves what was
+            committed earlier.</small
+          >
+        </p>
+      </section>
+      <section id="how-it-works">
+        <details>
+          <summary>How it works &amp; algorithm source</summary>
+          <p class="muted">
+            This single HTML contains the page, draw algorithm and synthetic
+            example. It derives the seed, replays the ticket shuffle, rebuilds
+            the prize order and compares actual awards and winning users. It
+            also checks that the configured drand round and public randomness
+            match the official public response.
+          </p>
+          <p class="muted">
+            Internet access is required for the
+            <a
+              href="https://api.drand.sh"
+              target="_blank"
+              rel="noopener noreferrer"
+              >official drand public API</a
+            >. This page trusts that HTTPS source; it does not perform a
+            separate BLS signature check. Missing evidence or an unavailable
+            public response is not a pass. The example uses synthetic
+            prizes/users and a real public round.
+          </p>
+          <pre
+            id="algorithmSource"
+            aria-label="Embedded verification algorithm"
+          ></pre>
+        </details>
+      </section>
+    </main>
+    <footer class="muted">
+      No account, wallet connection, automatic clipboard access, analytics or
+      lottery API connection is required. Anyone can inspect and run this
+      verifier independently.
+    </footer>
+    <script id="lottery-example" type="application/json">
+      {
+        "contract_version": 1,
+        "lottery_uuid": "example-lottery",
+        "sold_limit": 5,
+        "draw_start_nonce": 0,
+        "commitment": {
+          "status": "committed",
+          "scheme": "sha256",
+          "hash": "4762ae09d5f20568fc7c2d0ffc5e1332ce9c1971aa3c2cd04fb2a43218b95cb9",
+          "available_at": "2026-08-26 06:00:00",
+          "inputs": {
+            "game_lottery_uuid": "example-lottery",
+            "sold_limit": 5,
+            "draw_start_nonce": 0,
+            "prize_commitment_hash": "0e7a9bc3ec5ebb8831ff5f42435b7225b085659ab57c5a5f3ee8cc2dcb4234ef",
+            "entropy": {
+              "source": "drand",
+              "rule": "drand: the randomness of the round 20 after the round live at the sale close."
+            }
+          }
+        },
+        "close": {
+          "closed_at": "2026-08-26 07:49:13",
+          "reason": "sold_out"
+        },
+        "entropy": {
+          "source": "drand",
+          "rule": "drand: the randomness of the round 20 after the round live at the sale close.",
+          "target": {
+            "type": "round",
+            "value": "6410004"
+          },
+          "randomness": "5f3805a530af27435e275ecd57112f6a77e77dfb2b503f72e9bb9d451c25a7c9",
+          "randomness_source": "rpc"
+        },
+        "prizes": [
+          {
+            "id": 1,
+            "catalog_item_id": 1,
+            "quantity": 1,
+            "is_grand": true,
+            "fair_market_value": 100
+          },
+          {
+            "id": 2,
+            "catalog_item_id": 2,
+            "quantity": 4,
+            "is_grand": false,
+            "fair_market_value": 5
+          }
+        ],
+        "tickets": [
+          {
+            "ticket_number": 1,
+            "user_id": 1
+          },
+          {
+            "ticket_number": 2,
+            "user_id": 2
+          },
+          {
+            "ticket_number": 3,
+            "user_id": 1
+          },
+          {
+            "ticket_number": 4,
+            "user_id": 2
+          },
+          {
+            "ticket_number": 5,
+            "user_id": 1
+          }
+        ],
+        "assignments": [
+          {
+            "round_number": 1,
+            "prize_id": 1,
+            "ticket_number": 3,
+            "user_id": 1,
+            "awarded_item": {
+              "uuid": "item-1",
+              "catalog_item_id": 1,
+              "inventory_item_id": 101
+            }
+          },
+          {
+            "round_number": 2,
+            "prize_id": 2,
+            "ticket_number": 4,
+            "user_id": 2,
+            "awarded_item": {
+              "uuid": "item-2",
+              "catalog_item_id": 2,
+              "inventory_item_id": 102
+            }
+          },
+          {
+            "round_number": 3,
+            "prize_id": 2,
+            "ticket_number": 1,
+            "user_id": 1,
+            "awarded_item": {
+              "uuid": "item-3",
+              "catalog_item_id": 2,
+              "inventory_item_id": 103
+            }
+          },
+          {
+            "round_number": 4,
+            "prize_id": 2,
+            "ticket_number": 5,
+            "user_id": 1,
+            "awarded_item": {
+              "uuid": "item-4",
+              "catalog_item_id": 2,
+              "inventory_item_id": 104
+            }
+          },
+          {
+            "round_number": 5,
+            "prize_id": 2,
+            "ticket_number": 2,
+            "user_id": 2,
+            "awarded_item": {
+              "uuid": "item-5",
+              "catalog_item_id": 2,
+              "inventory_item_id": 105
+            }
+          }
+        ]
+      }
+    </script>
+    <script id="lottery-algorithm">
+      /* global module, TextEncoder, AbortController, setTimeout, clearTimeout */
+      // Independent browser/Node verifier. No OpenHype API, database or backend imports.
+      // No backend verdict or expected_assignments is trusted.
+      (function (root) {
+        const DRAND_CHAIN = Object.freeze({
+          hash: "8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce",
+          period: 30,
+          genesis_time: 1595431050,
+        });
+        const DRAND_API = `https://api.drand.sh/${DRAND_CHAIN.hash}`;
+        const enc = new TextEncoder();
+        const hex = (data) =>
+          Array.from(new Uint8Array(data), (b) =>
+            b.toString(16).padStart(2, "0"),
+          ).join("");
+        const sha256 = async (text) =>
+          hex(await root.crypto.subtle.digest("SHA-256", enc.encode(text)));
+        const hmac = async (hash, key, message) => {
+          const imported = await root.crypto.subtle.importKey(
+            "raw",
+            enc.encode(key),
+            { name: "HMAC", hash },
+            false,
+            ["sign"],
+          );
+          return hex(
+            await root.crypto.subtle.sign(
+              "HMAC",
+              imported,
+              enc.encode(message),
+            ),
+          );
+        };
+        const integer = (value, min = 1) =>
+          (typeof value === "number" ||
+            (typeof value === "string" && /^\d+$/.test(value))) &&
+          Number.isSafeInteger(Number(value)) &&
+          Number(value) >= min;
+        const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+        async function shuffleTickets(seed, value, count, startNonce) {
+          if (
+            !integer(count) ||
+            Number(count) > 100000 ||
+            !integer(startNonce, 0) ||
+            !Number.isSafeInteger(Number(startNonce) + Number(count))
+          )
+            throw new Error("Invalid ticket count or start nonce");
+          const tickets = Array.from(
+            { length: Number(count) },
+            (_, i) => i + 1,
+          );
+          let nonce = Number(startNonce);
+          for (let i = tickets.length - 1; i > 0; i--) {
+            const digest = await hmac("SHA-512", `${value}-${++nonce}`, seed);
+            const j = Number(
+              BigInt(`0x${digest.slice(0, 15)}`) % BigInt(i + 1),
+            );
+            [tickets[i], tickets[j]] = [tickets[j], tickets[i]];
+          }
+          return tickets;
+        }
+
+        async function fetchJson(url, fetcher) {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 10000);
+          try {
+            const response = await fetcher(url, { signal: controller.signal });
+            if (!response.ok) throw new Error(`drand HTTP ${response.status}`);
+            return await response.json();
+          } finally {
+            clearTimeout(timeout);
+          }
+        }
+
+        async function verifyDrandSource(round, value, options = {}) {
+          if (!integer(round) || !/^[0-9a-f]{64}$/.test(value))
+            return {
+              valid: false,
+              detail: "Invalid drand round or randomness",
+            };
+          let beacon;
+          try {
+            beacon = await fetchJson(
+              `${DRAND_API}/public/${round}`,
+              options.fetch || root.fetch.bind(root),
+            );
+          } catch {
+            return {
+              valid: null,
+              detail:
+                "The official drand public round is unavailable; this is not a pass",
+            };
+          }
+          const valid =
+            integer(beacon?.round) &&
+            Number(beacon.round) === Number(round) &&
+            beacon.randomness === value;
+          return {
+            valid,
+            detail: valid
+              ? "Official drand round and public randomness match"
+              : "Official drand round or public randomness differs from the lottery",
+          };
+        }
+
+        function normalizePrizes(rows, uuid, count) {
+          if (!Array.isArray(rows) || !rows.length) return null;
+          const prizes = rows.map((p) => {
+            if (
+              !integer(p?.id) ||
+              !integer(p?.catalog_item_id) ||
+              !integer(p?.quantity) ||
+              typeof p?.is_grand !== "boolean" ||
+              !Number.isFinite(Number(p?.fair_market_value))
+            )
+              throw new Error("Invalid prizes");
+            return {
+              id: Number(p.id),
+              catalog_item_id: Number(p.catalog_item_id),
+              quantity: Number(p.quantity),
+              is_grand: p.is_grand,
+              fair_market_value: Number(p.fair_market_value),
+            };
+          });
+          if (
+            new Set(prizes.map((p) => p.id)).size !== prizes.length ||
+            prizes.reduce((sum, p) => sum + p.quantity, 0) !== count ||
+            prizes.filter((p) => p.is_grand).length !== 1 ||
+            prizes.find((p) => p.is_grand).quantity !== 1
+          )
+            return null;
+          const canonicalRows = [...prizes].sort((a, b) => a.id - b.id);
+          const canonical = `${uuid}|${count}|${canonicalRows
+            .map(
+              (p) =>
+                `${p.id}:${p.catalog_item_id}:${p.quantity}:${p.is_grand ? 1 : 0}:${p.fair_market_value}`,
+            )
+            .join(",")}`;
+          const units = [...prizes]
+            .sort(
+              (a, b) =>
+                Number(b.is_grand) - Number(a.is_grand) ||
+                b.fair_market_value - a.fair_market_value ||
+                a.id - b.id,
+            )
+            .flatMap((p) => Array.from({ length: p.quantity }, () => p));
+          return { canonical, prizes, units };
+        }
+
+        async function verifyPayload(payload, options = {}) {
+          const uuid = payload?.lottery_uuid;
+          if (
+            typeof uuid !== "string" ||
+            !uuid ||
+            payload.contract_version !== 1 ||
+            !integer(payload.sold_limit) ||
+            Number(payload.sold_limit) > 100000 ||
+            Number(payload.draw_start_nonce) !== 0 ||
+            typeof payload.entropy?.randomness !== "string"
+          )
+            throw new Error("Missing or invalid verification inputs");
+          const checks = {};
+          const count = Number(payload.sold_limit);
+          const value = payload.entropy.randomness;
+          const seed = await sha256(`${uuid}|${value}`);
+          const tickets = await shuffleTickets(
+            seed,
+            value,
+            count,
+            payload.draw_start_nonce,
+          );
+          const normalized = normalizePrizes(payload.prizes, uuid, count);
+          const prizeHash = normalized
+            ? await sha256(normalized.canonical)
+            : null;
+          const committedPrizeHash =
+            payload.commitment?.inputs?.prize_commitment_hash;
+          checks.prizes = !!prizeHash && prizeHash === committedPrizeHash;
+
+          const publishedInputs = {
+            game_lottery_uuid: uuid,
+            sold_limit: count,
+            draw_start_nonce: Number(payload.draw_start_nonce),
+            prize_commitment_hash: prizeHash,
+            entropy: {
+              source: payload.entropy?.source ?? null,
+              rule: payload.entropy?.rule ?? null,
+            },
+          };
+          const publishedCanonical = JSON.stringify([
+            "game-lottery-published",
+            1,
+            publishedInputs,
+          ]);
+          const publishedHash = await sha256(publishedCanonical);
+          checks.commitment =
+            payload.commitment?.status === "committed" &&
+            payload.commitment?.scheme === "sha256" &&
+            payload.commitment?.hash === publishedHash &&
+            equal(payload.commitment?.inputs, publishedInputs);
+          checks.saved_commitment = options.publishedCommitment
+            ? publishedHash === options.publishedCommitment.trim().toLowerCase()
+            : null;
+
+          const ownerRows = payload.tickets;
+          const owners = new Map(
+            Array.isArray(ownerRows)
+              ? ownerRows.map((t) => [
+                  Number(t.ticket_number),
+                  Number(t.user_id),
+                ])
+              : [],
+          );
+          const validOwners =
+            Array.isArray(ownerRows) &&
+            ownerRows.length === count &&
+            owners.size === count &&
+            ownerRows.every(
+              (t) =>
+                integer(t.ticket_number) &&
+                Number(t.ticket_number) <= count &&
+                integer(t.user_id),
+            );
+          checks.tickets = validOwners;
+          const recorded = payload.assignments;
+          const byRound = new Map(
+            Array.isArray(recorded)
+              ? recorded.map((r) => [Number(r.round_number), r])
+              : [],
+          );
+          const validSet =
+            Array.isArray(recorded) &&
+            recorded.length === count &&
+            byRound.size === count &&
+            recorded.every(
+              (r) => integer(r.round_number) && Number(r.round_number) <= count,
+            );
+          const expected = (normalized?.units || []).map((p, k) => ({
+            round_number: k + 1,
+            prize_id: p.id,
+            ticket_number: tickets[k],
+            user_id: owners.get(tickets[k]) ?? null,
+            is_grand: p.is_grand,
+          }));
+          checks.assignments =
+            !!normalized &&
+            validOwners &&
+            validSet &&
+            expected.every((e) => {
+              const r = byRound.get(e.round_number);
+              return (
+                Number(r.ticket_number) === e.ticket_number &&
+                Number(r.user_id) === e.user_id &&
+                Number(r.prize_id) === e.prize_id
+              );
+            });
+          const prizesById = new Map(
+            normalized?.prizes.map((p) => [p.id, p]) || [],
+          );
+          const awardedItems = Array.isArray(recorded)
+            ? recorded.map((r) => r.awarded_item)
+            : [];
+          checks.items =
+            validSet &&
+            new Set(awardedItems.map((item) => item?.uuid)).size === count &&
+            recorded.every((r) => {
+              const item = r.awarded_item;
+              const prize = prizesById.get(Number(r.prize_id));
+              return (
+                item &&
+                typeof item.uuid === "string" &&
+                item.uuid.length > 0 &&
+                prize &&
+                Number(item.catalog_item_id) === prize.catalog_item_id &&
+                (item.inventory_item_id == null ||
+                  integer(item.inventory_item_id))
+              );
+            });
+          let randomnessDetail = "This source has no public randomness check";
+          checks.target = null;
+          checks.randomness = null;
+          if (payload.entropy.source === "drand") {
+            const rule =
+              /^drand: the randomness of the round (\d+) after the round live at the sale close\.$/.exec(
+                payload.entropy.rule || "",
+              );
+            const date = String(payload.close?.closed_at || "").replace(
+              " ",
+              "T",
+            );
+            const closed = Date.parse(
+              /(?:Z|[+-]\d{2}:\d{2})$/.test(date) ? date : `${date}Z`,
+            );
+            const depth = rule ? Number(rule[1]) : NaN;
+            if (Number.isFinite(closed) && integer(depth)) {
+              checks.target =
+                payload.entropy.target?.type === "round" &&
+                integer(payload.entropy.target?.value) &&
+                Number(payload.entropy.target.value) ===
+                  Math.floor(
+                    (Math.floor(closed / 1000) - DRAND_CHAIN.genesis_time) /
+                      DRAND_CHAIN.period,
+                  ) +
+                    1 +
+                    depth;
+            }
+            const publicRandomness = await verifyDrandSource(
+              payload.entropy.target?.value,
+              value,
+              options,
+            );
+            checks.randomness = publicRandomness.valid;
+            randomnessDetail = publicRandomness.detail;
+          }
+          const coreChecks = [
+            checks.prizes,
+            checks.commitment,
+            checks.tickets,
+            checks.assignments,
+            checks.items,
+            checks.target,
+            checks.randomness,
+          ];
+          return {
+            checks,
+            randomness_detail: randomnessDetail,
+            shuffled_tickets: tickets,
+            expected_assignments: expected,
+            grand_winner: expected.find((p) => p.is_grand) || null,
+            status: coreChecks.some((v) => v === false)
+              ? "failed"
+              : coreChecks.some((v) => v == null)
+                ? "partial"
+                : "verified",
+            publication_evidence:
+              checks.saved_commitment === true ? true : null,
+          };
+        }
+
+        const api = {
+          DRAND_CHAIN,
+          shuffleTickets,
+          verifyDrandSource,
+          verifyPayload,
+        };
+        if (typeof module !== "undefined" && module.exports)
+          module.exports = api;
+        else root.LotteryVerifier = api;
+      })(globalThis);
+    </script>
+    <script id="lottery-app">
+      /* global document, LotteryVerifier */
+      (function () {
+        const el = (id) => document.getElementById(id);
+        const names = {
+          prizes: "Prize commitment",
+          commitment: "Pre-sale commitment payload",
+          saved_commitment: "Independently saved pre-sale hash",
+          tickets: "Ticket ownership map",
+          assignments: "Recorded draw assignments",
+          items: "Awarded item provenance",
+          target: "drand round selection",
+          randomness: "drand public randomness",
+        };
+        const group = (values) =>
+          values.some((v) => v === false)
+            ? false
+            : values.every((v) => v === true)
+              ? true
+              : null;
+        let revision = 0;
+        let busy = false;
+
+        function clearResult() {
+          revision++;
+          el("result").hidden = true;
+          el("error").hidden = true;
+        }
+        el("payload").addEventListener("input", clearResult);
+        el("publishedCommitment").addEventListener("input", clearResult);
+
+        function row(name, state) {
+          const div = document.createElement("div");
+          div.className = "check";
+          const label = document.createElement("span");
+          label.textContent = name;
+          const value = document.createElement("strong");
+          value.className =
+            state === true ? "pass" : state === false ? "fail" : "unknown";
+          value.textContent =
+            state === true
+              ? "Passed"
+              : state === false
+                ? "Failed"
+                : "Not verified";
+          div.append(label, value);
+          return div;
+        }
+
+        el("verify").addEventListener("click", async () => {
+          if (busy) return;
+          clearResult();
+          const current = revision;
+          busy = true;
+          el("verify").disabled = true;
+          el("example").disabled = true;
+          el("verify").textContent = "Verifying…";
+          try {
+            const payload = JSON.parse(el("payload").value);
+            const result = await LotteryVerifier.verifyPayload(payload, {
+              publishedCommitment: el("publishedCommitment").value.trim(),
+            });
+            if (current !== revision) return; // Never show a verdict for text edited during verification.
+            const c = result.checks;
+            const draw = group([
+              c.prizes,
+              c.commitment,
+              c.tickets,
+              c.assignments,
+              c.items,
+            ]);
+            const randomness = group([c.target, c.randomness]);
+            const publication = c.saved_commitment;
+            el("headline").textContent =
+              result.status === "failed"
+                ? "Verification failed"
+                : draw === true && randomness === true && publication === true
+                  ? "Draw, randomness, and saved commitment match"
+                  : draw === true && randomness === true
+                    ? publication === false
+                      ? "Draw and randomness match; saved commitment differs"
+                      : "Draw and randomness match; publication evidence was not supplied"
+                    : "Verification incomplete";
+            el("headline").className =
+              result.status === "failed"
+                ? "fail"
+                : draw === true && randomness === true
+                  ? "pass"
+                  : "unknown";
+            const winner = result.grand_winner;
+            el("winner").textContent = winner
+              ? `Recomputed grand prize: ticket ${winner.ticket_number} · user #${winner.user_id ?? "unknown"}`
+              : "The grand prize could not be reproduced.";
+            el("checks").replaceChildren(
+              row("Draw results", draw),
+              row("Public randomness", randomness),
+              row("Saved publication evidence", publication),
+            );
+            el("technical").replaceChildren(
+              ...Object.entries(c).map(([key, state]) =>
+                row(names[key] || key, state),
+              ),
+            );
+            el("randomnessDetail").textContent = result.randomness_detail;
+            const target = String(payload.entropy?.target?.value ?? "");
+            const drand =
+              payload.entropy?.source === "drand" &&
+              payload.entropy?.target?.type === "round" &&
+              /^\d+$/.test(target);
+            el("drandLink").hidden = !drand;
+            if (drand)
+              el("drandLink").href =
+                `https://api.drand.sh/${LotteryVerifier.DRAND_CHAIN.hash}/public/${target}`;
+            el("result").hidden = false;
+          } catch (error) {
+            if (current !== revision) return;
+            el("error").textContent =
+              `Cannot verify this JSON: ${error.message}`;
+            el("error").hidden = false;
+          } finally {
+            busy = false;
+            el("verify").disabled = false;
+            el("example").disabled = false;
+            el("verify").textContent = "Verify draw";
+          }
+        });
+
+        el("example").addEventListener("click", () => {
+          clearResult();
+          el("payload").value = JSON.stringify(
+            JSON.parse(el("lottery-example").textContent),
+            null,
+            2,
+          );
+          el("publishedCommitment").value = "";
+        });
+        el("algorithmSource").textContent =
+          el("lottery-algorithm").textContent.trim();
+      })();
+    </script>
+  </body>
+</html>
