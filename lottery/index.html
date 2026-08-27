@@ -295,8 +295,8 @@
               >official drand public API</a
             >. This page trusts that HTTPS source; it does not perform a
             separate BLS signature check. Missing evidence or an unavailable
-            public response is not a pass. The example uses synthetic
-            prizes/users and a real public round.
+            public response is not a pass. The example uses synthetic prize
+            tiers/participants and a real public round.
           </p>
           <pre
             id="algorithmSource"
@@ -346,7 +346,7 @@
           "randomness": "5f3805a530af27435e275ecd57112f6a77e77dfb2b503f72e9bb9d451c25a7c9",
           "randomness_source": "rpc"
         },
-        "prizes": [
+        "prize_tiers": [
           {
             "id": 1,
             "catalog_item_id": 1,
@@ -365,82 +365,82 @@
         "tickets": [
           {
             "ticket_number": 1,
-            "user_id": 1
+            "participant_ref": "participant-0001"
           },
           {
             "ticket_number": 2,
-            "user_id": 2
+            "participant_ref": "participant-0002"
           },
           {
             "ticket_number": 3,
-            "user_id": 1
+            "participant_ref": "participant-0001"
           },
           {
             "ticket_number": 4,
-            "user_id": 2
+            "participant_ref": "participant-0002"
           },
           {
             "ticket_number": 5,
-            "user_id": 1
+            "participant_ref": "participant-0001"
           }
         ],
-        "assignments": [
+        "awards": [
           {
             "round_number": 1,
-            "prize_id": 1,
+            "prize_tier_id": 1,
             "ticket_number": 3,
-            "user_id": 1,
-            "awarded_item": {
+            "participant_ref": "participant-0001",
+            "item": {
               "uuid": "item-1",
-              "user_id": 1,
+              "participant_ref": "participant-0001",
               "catalog_item_id": 1,
               "inventory_item_id": 101
             }
           },
           {
             "round_number": 2,
-            "prize_id": 2,
+            "prize_tier_id": 2,
             "ticket_number": 4,
-            "user_id": 2,
-            "awarded_item": {
+            "participant_ref": "participant-0002",
+            "item": {
               "uuid": "item-2",
-              "user_id": 2,
+              "participant_ref": "participant-0002",
               "catalog_item_id": 2,
               "inventory_item_id": 102
             }
           },
           {
             "round_number": 3,
-            "prize_id": 2,
+            "prize_tier_id": 2,
             "ticket_number": 1,
-            "user_id": 1,
-            "awarded_item": {
+            "participant_ref": "participant-0001",
+            "item": {
               "uuid": "item-3",
-              "user_id": 1,
+              "participant_ref": "participant-0001",
               "catalog_item_id": 2,
               "inventory_item_id": 103
             }
           },
           {
             "round_number": 4,
-            "prize_id": 2,
+            "prize_tier_id": 2,
             "ticket_number": 5,
-            "user_id": 1,
-            "awarded_item": {
+            "participant_ref": "participant-0001",
+            "item": {
               "uuid": "item-4",
-              "user_id": 1,
+              "participant_ref": "participant-0001",
               "catalog_item_id": 2,
               "inventory_item_id": 104
             }
           },
           {
             "round_number": 5,
-            "prize_id": 2,
+            "prize_tier_id": 2,
             "ticket_number": 2,
-            "user_id": 2,
-            "awarded_item": {
+            "participant_ref": "participant-0002",
+            "item": {
               "uuid": "item-5",
-              "user_id": 2,
+              "participant_ref": "participant-0002",
               "catalog_item_id": 2,
               "inventory_item_id": 105
             }
@@ -451,7 +451,7 @@
     <script id="lottery-algorithm">
       /* global module, TextEncoder, AbortController, setTimeout, clearTimeout */
       // Independent browser/Node verifier. No OpenHype API, database or backend imports.
-      // No backend verdict or expected_assignments is trusted.
+      // No backend verdict or expected_awards is trusted.
       (function (root) {
         const DRAND_CHAIN = Object.freeze({
           hash: "8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce",
@@ -555,9 +555,9 @@
           };
         }
 
-        function normalizePrizes(rows, uuid, count) {
+        function normalizePrizeTiers(rows, uuid, count) {
           if (!Array.isArray(rows) || !rows.length) return null;
-          const prizes = rows.map((p) => {
+          const prizeTiers = rows.map((p) => {
             if (
               !integer(p?.id) ||
               !integer(p?.catalog_item_id) ||
@@ -565,7 +565,7 @@
               typeof p?.is_grand !== "boolean" ||
               !Number.isFinite(Number(p?.fair_market_value))
             )
-              throw new Error("Invalid prizes");
+              throw new Error("Invalid prize tiers");
             return {
               id: Number(p.id),
               catalog_item_id: Number(p.catalog_item_id),
@@ -575,20 +575,20 @@
             };
           });
           if (
-            new Set(prizes.map((p) => p.id)).size !== prizes.length ||
-            prizes.reduce((sum, p) => sum + p.quantity, 0) !== count ||
-            prizes.filter((p) => p.is_grand).length !== 1 ||
-            prizes.find((p) => p.is_grand).quantity !== 1
+            new Set(prizeTiers.map((p) => p.id)).size !== prizeTiers.length ||
+            prizeTiers.reduce((sum, p) => sum + p.quantity, 0) !== count ||
+            prizeTiers.filter((p) => p.is_grand).length !== 1 ||
+            prizeTiers.find((p) => p.is_grand).quantity !== 1
           )
             return null;
-          const canonicalRows = [...prizes].sort((a, b) => a.id - b.id);
+          const canonicalRows = [...prizeTiers].sort((a, b) => a.id - b.id);
           const canonical = `${uuid}|${count}|${canonicalRows
             .map(
               (p) =>
                 `${p.id}:${p.catalog_item_id}:${p.quantity}:${p.is_grand ? 1 : 0}:${p.fair_market_value}`,
             )
             .join(",")}`;
-          const units = [...prizes]
+          const units = [...prizeTiers]
             .sort(
               (a, b) =>
                 Number(b.is_grand) - Number(a.is_grand) ||
@@ -596,7 +596,7 @@
                 a.id - b.id,
             )
             .flatMap((p) => Array.from({ length: p.quantity }, () => p));
-          return { canonical, prizes, units };
+          return { canonical, prizeTiers, units };
         }
 
         async function verifyPayload(payload, options = {}) {
@@ -621,13 +621,17 @@
             count,
             payload.draw_start_nonce,
           );
-          const normalized = normalizePrizes(payload.prizes, uuid, count);
+          const normalized = normalizePrizeTiers(
+            payload.prize_tiers,
+            uuid,
+            count,
+          );
           const prizeHash = normalized
             ? await sha256(normalized.canonical)
             : null;
           const committedPrizeHash =
             payload.commitment?.inputs?.prize_commitment_hash;
-          checks.prizes = !!prizeHash && prizeHash === committedPrizeHash;
+          checks.prize_tiers = !!prizeHash && prizeHash === committedPrizeHash;
 
           const publishedInputs = {
             game_lottery_uuid: uuid,
@@ -659,7 +663,7 @@
             Array.isArray(ownerRows)
               ? ownerRows.map((t) => [
                   Number(t.ticket_number),
-                  Number(t.user_id),
+                  t.participant_ref,
                 ])
               : [],
           );
@@ -671,10 +675,11 @@
               (t) =>
                 integer(t.ticket_number) &&
                 Number(t.ticket_number) <= count &&
-                integer(t.user_id),
+                typeof t.participant_ref === "string" &&
+                t.participant_ref.length > 0,
             );
           checks.tickets = validOwners;
-          const recorded = payload.assignments;
+          const recorded = payload.awards;
           const byRound = new Map(
             Array.isArray(recorded)
               ? recorded.map((r) => [Number(r.round_number), r])
@@ -689,12 +694,12 @@
             );
           const expected = (normalized?.units || []).map((p, k) => ({
             round_number: k + 1,
-            prize_id: p.id,
+            prize_tier_id: p.id,
             ticket_number: tickets[k],
-            user_id: owners.get(tickets[k]) ?? null,
+            participant_ref: owners.get(tickets[k]) ?? null,
             is_grand: p.is_grand,
           }));
-          checks.assignments =
+          checks.awards =
             !!normalized &&
             validOwners &&
             validSet &&
@@ -702,29 +707,29 @@
               const r = byRound.get(e.round_number);
               return (
                 Number(r.ticket_number) === e.ticket_number &&
-                Number(r.user_id) === e.user_id &&
-                Number(r.prize_id) === e.prize_id
+                r.participant_ref === e.participant_ref &&
+                Number(r.prize_tier_id) === e.prize_tier_id
               );
             });
-          const prizesById = new Map(
-            normalized?.prizes.map((p) => [p.id, p]) || [],
+          const prizeTiersById = new Map(
+            normalized?.prizeTiers.map((p) => [p.id, p]) || [],
           );
           const awardedItems = Array.isArray(recorded)
-            ? recorded.map((r) => r.awarded_item)
+            ? recorded.map((r) => r.item)
             : [];
           checks.items =
             validSet &&
             new Set(awardedItems.map((item) => item?.uuid)).size === count &&
             recorded.every((r) => {
-              const item = r.awarded_item;
-              const prize = prizesById.get(Number(r.prize_id));
+              const item = r.item;
+              const prizeTier = prizeTiersById.get(Number(r.prize_tier_id));
               return (
                 item &&
                 typeof item.uuid === "string" &&
                 item.uuid.length > 0 &&
-                prize &&
-                Number(item.user_id) === Number(r.user_id) &&
-                Number(item.catalog_item_id) === prize.catalog_item_id &&
+                prizeTier &&
+                item.participant_ref === r.participant_ref &&
+                Number(item.catalog_item_id) === prizeTier.catalog_item_id &&
                 (item.inventory_item_id == null ||
                   integer(item.inventory_item_id))
               );
@@ -766,10 +771,10 @@
             randomnessDetail = publicRandomness.detail;
           }
           const coreChecks = [
-            checks.prizes,
+            checks.prize_tiers,
             checks.commitment,
             checks.tickets,
-            checks.assignments,
+            checks.awards,
             checks.items,
             checks.target,
             checks.randomness,
@@ -778,7 +783,7 @@
             checks,
             randomness_detail: randomnessDetail,
             shuffled_tickets: tickets,
-            expected_assignments: expected,
+            expected_awards: expected,
             grand_winner: expected.find((p) => p.is_grand) || null,
             status: coreChecks.some((v) => v === false)
               ? "failed"
@@ -806,11 +811,11 @@
       (function () {
         const el = (id) => document.getElementById(id);
         const names = {
-          prizes: "Prize commitment",
+          prize_tiers: "Prize tier commitment",
           commitment: "Pre-sale commitment payload",
           saved_commitment: "Independently saved pre-sale hash",
           tickets: "Ticket ownership map",
-          assignments: "Recorded draw assignments",
+          awards: "One-row-per-item awards",
           items: "Awarded item provenance",
           target: "drand round selection",
           randomness: "drand public randomness",
@@ -866,10 +871,10 @@
             if (current !== revision) return; // Never show a verdict for text edited during verification.
             const c = result.checks;
             const draw = group([
-              c.prizes,
+              c.prize_tiers,
               c.commitment,
               c.tickets,
-              c.assignments,
+              c.awards,
               c.items,
             ]);
             const randomness = group([c.target, c.randomness]);
@@ -892,7 +897,7 @@
                   : "unknown";
             const winner = result.grand_winner;
             el("winner").textContent = winner
-              ? `Recomputed grand prize: ticket ${winner.ticket_number} · user #${winner.user_id ?? "unknown"}`
+              ? `Recomputed grand prize: ticket ${winner.ticket_number} · ${winner.participant_ref ?? "unknown participant"}`
               : "The grand prize could not be reproduced.";
             el("checks").replaceChildren(
               row("Draw results", draw),
