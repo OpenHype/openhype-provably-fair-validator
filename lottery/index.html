@@ -386,10 +386,11 @@
         ],
         "awards": [
           {
-            "round_number": 1,
+            "prize_position": 1,
             "prize_tier_id": 1,
             "ticket_number": 3,
             "participant_ref": "participant-0001",
+            "user": { "display_name": "a***e" },
             "item": {
               "uuid": "item-1",
               "participant_ref": "participant-0001",
@@ -398,10 +399,11 @@
             }
           },
           {
-            "round_number": 2,
+            "prize_position": 2,
             "prize_tier_id": 2,
             "ticket_number": 4,
             "participant_ref": "participant-0002",
+            "user": { "display_name": "b***b" },
             "item": {
               "uuid": "item-2",
               "participant_ref": "participant-0002",
@@ -410,10 +412,11 @@
             }
           },
           {
-            "round_number": 3,
+            "prize_position": 3,
             "prize_tier_id": 2,
             "ticket_number": 1,
             "participant_ref": "participant-0001",
+            "user": { "display_name": "a***e" },
             "item": {
               "uuid": "item-3",
               "participant_ref": "participant-0001",
@@ -422,10 +425,11 @@
             }
           },
           {
-            "round_number": 4,
+            "prize_position": 4,
             "prize_tier_id": 2,
             "ticket_number": 5,
             "participant_ref": "participant-0001",
+            "user": { "display_name": "a***e" },
             "item": {
               "uuid": "item-4",
               "participant_ref": "participant-0001",
@@ -434,10 +438,11 @@
             }
           },
           {
-            "round_number": 5,
+            "prize_position": 5,
             "prize_tier_id": 2,
             "ticket_number": 2,
             "participant_ref": "participant-0002",
+            "user": { "display_name": "b***b" },
             "item": {
               "uuid": "item-5",
               "participant_ref": "participant-0002",
@@ -680,20 +685,21 @@
             );
           checks.tickets = validOwners;
           const recorded = payload.awards;
-          const byRound = new Map(
+          const byPrizePosition = new Map(
             Array.isArray(recorded)
-              ? recorded.map((r) => [Number(r.round_number), r])
+              ? recorded.map((r) => [Number(r.prize_position), r])
               : [],
           );
           const validSet =
             Array.isArray(recorded) &&
             recorded.length === count &&
-            byRound.size === count &&
+            byPrizePosition.size === count &&
             recorded.every(
-              (r) => integer(r.round_number) && Number(r.round_number) <= count,
+              (r) =>
+                integer(r.prize_position) && Number(r.prize_position) <= count,
             );
           const expected = (normalized?.units || []).map((p, k) => ({
-            round_number: k + 1,
+            prize_position: k + 1,
             prize_tier_id: p.id,
             ticket_number: tickets[k],
             participant_ref: owners.get(tickets[k]) ?? null,
@@ -704,7 +710,7 @@
             validOwners &&
             validSet &&
             expected.every((e) => {
-              const r = byRound.get(e.round_number);
+              const r = byPrizePosition.get(e.prize_position);
               return (
                 Number(r.ticket_number) === e.ticket_number &&
                 r.participant_ref === e.participant_ref &&
@@ -779,12 +785,20 @@
             checks.target,
             checks.randomness,
           ];
+          const grandWinner = expected.find((p) => p.is_grand) || null;
           return {
             checks,
             randomness_detail: randomnessDetail,
             shuffled_tickets: tickets,
             expected_awards: expected,
-            grand_winner: expected.find((p) => p.is_grand) || null,
+            grand_winner: grandWinner
+              ? {
+                  ...grandWinner,
+                  user:
+                    byPrizePosition.get(grandWinner.prize_position)?.user ??
+                    null,
+                }
+              : null,
             status: coreChecks.some((v) => v === false)
               ? "failed"
               : coreChecks.some((v) => v == null)
@@ -896,8 +910,12 @@
                   ? "pass"
                   : "unknown";
             const winner = result.grand_winner;
+            const winnerLabel =
+              winner?.user?.display_name ||
+              winner?.participant_ref ||
+              "unknown participant";
             el("winner").textContent = winner
-              ? `Recomputed grand prize: ticket ${winner.ticket_number} · ${winner.participant_ref ?? "unknown participant"}`
+              ? `Recomputed grand prize: ticket ${winner.ticket_number} · ${winnerLabel}`
               : "The grand prize could not be reproduced.";
             el("checks").replaceChildren(
               row("Draw results", draw),
